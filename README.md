@@ -8,7 +8,6 @@ These skills can help agents query market data, use REST and WebSocket workflows
 
 Before making this repository public, confirm the safety posture is visible and enforced:
 
-- CI passes on a clean checkout.
 - REST helper self-tests pass for Spot and Futures.
 - `python -m compileall codex_mexc_skills claude_mexc_skills` succeeds.
 - `gitleaks detect --source . --verbose` succeeds.
@@ -64,7 +63,6 @@ Usually, no. The Claude and Codex folders contain the same MEXC workflows in env
 
 ## Continuous integration
 
-CI is configured in `.github/workflows/ci.yml` to run the minimum public-release checks:
 
 ```bash
 python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
