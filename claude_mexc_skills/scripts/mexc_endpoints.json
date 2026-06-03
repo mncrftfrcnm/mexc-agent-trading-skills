@@ -1,0 +1,297 @@
+{
+  "spot": {
+    "name": "MEXC Spot V3 REST",
+    "base_url": "https://api.mexc.com",
+    "auth": {
+      "public": "no key",
+      "api_key": "X-MEXC-APIKEY",
+      "signed": "X-MEXC-APIKEY plus timestamp, optional recvWindow, and HMAC-SHA256 signature over totalParams"
+    },
+    "topics": {
+      "market": {
+        "aliases": [
+          "public",
+          "price",
+          "ticker",
+          "depth",
+          "trade",
+          "kline",
+          "klines"
+        ],
+        "auth": "public",
+        "endpoints": [
+          "GET /api/v3/ping",
+          "GET /api/v3/time",
+          "GET /api/v3/defaultSymbols",
+          "GET /api/v3/exchangeInfo",
+          "GET /api/v3/depth",
+          "GET /api/v3/trades",
+          "GET /api/v3/aggTrades",
+          "GET /api/v3/klines",
+          "GET /api/v3/ticker/24hr",
+          "GET /api/v3/ticker/price",
+          "GET /api/v3/ticker/bookTicker"
+        ],
+        "notes": [
+          "Use uppercase symbols such as BTCUSDT."
+        ]
+      },
+      "account": {
+        "aliases": [
+          "balance",
+          "balances",
+          "kyc",
+          "trades",
+          "mytrades"
+        ],
+        "auth": "signed",
+        "endpoints": [
+          "GET /api/v3/account",
+          "GET /api/v3/kyc/status",
+          "GET /api/v3/selfSymbols",
+          "GET /api/v3/myTrades"
+        ],
+        "notes": [
+          "Use GET /api/v3/account for a current Spot balance snapshot."
+        ]
+      },
+      "orders": {
+        "aliases": [
+          "order",
+          "trade",
+          "cancel",
+          "openorders",
+          "test"
+        ],
+        "auth": "signed",
+        "endpoints": [
+          "POST /api/v3/order/test",
+          "POST /api/v3/order",
+          "POST /api/v3/batchOrders",
+          "GET /api/v3/order",
+          "DELETE /api/v3/order",
+          "GET /api/v3/openOrders",
+          "DELETE /api/v3/openOrders",
+          "GET /api/v3/allOrders"
+        ],
+        "notes": [
+          "Use /api/v3/order/test before live orders.",
+          "Live order writes require explicit confirmation."
+        ]
+      },
+      "listen-key": {
+        "aliases": [
+          "listen",
+          "userdatastream",
+          "private stream",
+          "websocket"
+        ],
+        "auth": "signed",
+        "endpoints": [
+          "POST /api/v3/userDataStream",
+          "GET /api/v3/userDataStream",
+          "PUT /api/v3/userDataStream",
+          "DELETE /api/v3/userDataStream"
+        ],
+        "notes": [
+          "Live Spot V3 listen-key calls require signed requests.",
+          "Treat listen keys as temporary secrets."
+        ]
+      },
+      "wallet": {
+        "aliases": [
+          "deposit",
+          "withdraw",
+          "capital",
+          "address",
+          "network"
+        ],
+        "auth": "signed",
+        "endpoints": [
+          "GET /api/v3/capital/config/getall",
+          "GET /api/v3/capital/deposit/hisrec",
+          "GET /api/v3/capital/withdraw/history",
+          "GET /api/v3/capital/deposit/address",
+          "POST /api/v3/capital/withdraw/apply"
+        ],
+        "notes": [
+          "Withdrawal permission is high risk; do not enable by default."
+        ]
+      },
+      "sub-account": {
+        "aliases": [
+          "subaccount",
+          "sub account",
+          "master",
+          "transfer"
+        ],
+        "auth": "signed",
+        "endpoints": [
+          "POST /api/v3/sub-account/virtualSubAccount",
+          "GET /api/v3/sub-account/list",
+          "POST /api/v3/sub-account/apiKey",
+          "GET /api/v3/sub-account/apiKey",
+          "DELETE /api/v3/sub-account/apiKey",
+          "GET /api/v3/sub-account/asset",
+          "POST /api/v3/capital/sub-account/universalTransfer",
+          "GET /api/v3/capital/sub-account/universalTransfer"
+        ],
+        "notes": [
+          "Master-account permissions are usually required."
+        ]
+      },
+      "rebate": {
+        "aliases": [
+          "affiliate",
+          "refer",
+          "commission",
+          "tax",
+          "subaffiliate"
+        ],
+        "auth": "signed",
+        "endpoints": [
+          "GET /api/v3/rebate/taxQuery",
+          "GET /api/v3/rebate/detail",
+          "GET /api/v3/rebate/detail/kickback",
+          "GET /api/v3/rebate/referCode",
+          "GET /api/v3/rebate/affiliate/commission/detail",
+          "GET /api/v3/rebate/affiliate/referral",
+          "GET /api/v3/rebate/affiliate/subaffiliates"
+        ],
+        "notes": []
+      }
+    }
+  },
+  "futures": {
+    "name": "MEXC Futures REST",
+    "base_url": "https://api.mexc.com",
+    "auth": {
+      "public": "no authentication",
+      "private": "ApiKey, Request-Time, Signature, optional Recv-Window",
+      "signature": "accessKey + timestamp + parameterString signed with HMAC-SHA256; GET/DELETE sort params, POST signs compact JSON"
+    },
+    "topics": {
+      "market": {
+        "aliases": [
+          "public",
+          "contract",
+          "price",
+          "ticker",
+          "depth",
+          "kline",
+          "funding"
+        ],
+        "auth": "public",
+        "endpoints": [
+          "GET /api/v1/contract/ping",
+          "GET /api/v1/contract/detail",
+          "GET /api/v1/contract/depth/{symbol}",
+          "GET /api/v1/contract/ticker",
+          "GET /api/v1/contract/index_price/{symbol}",
+          "GET /api/v1/contract/fair_price/{symbol}",
+          "GET /api/v1/contract/funding_rate/{symbol}",
+          "GET /api/v1/contract/kline/{symbol}"
+        ],
+        "notes": [
+          "Check contract detail before trading."
+        ]
+      },
+      "account": {
+        "aliases": [
+          "asset",
+          "assets",
+          "balance",
+          "balances",
+          "risk",
+          "fee"
+        ],
+        "auth": "private",
+        "endpoints": [
+          "GET /api/v1/private/account/assets",
+          "GET /api/v1/private/account/asset/{currency}",
+          "GET /api/v1/private/account/transfer_record",
+          "GET /api/v1/private/account/risk_limit",
+          "GET /api/v1/private/account/tiered_fee_rate"
+        ],
+        "notes": [
+          "Use account/assets for a current Futures balance snapshot."
+        ]
+      },
+      "positions": {
+        "aliases": [
+          "position",
+          "leverage",
+          "margin",
+          "funding"
+        ],
+        "auth": "private",
+        "endpoints": [
+          "GET /api/v1/private/position/open_positions",
+          "GET /api/v1/private/position/list/history_positions",
+          "GET /api/v1/private/position/funding_records",
+          "GET /api/v1/private/position/leverage",
+          "GET /api/v1/private/position/position_mode",
+          "POST /api/v1/private/position/change_margin",
+          "POST /api/v1/private/position/change_leverage",
+          "POST /api/v1/private/position/change_position_mode"
+        ],
+        "notes": [
+          "Position writes are live-only."
+        ]
+      },
+      "orders": {
+        "aliases": [
+          "order",
+          "cancel",
+          "deal",
+          "externaloid",
+          "history"
+        ],
+        "auth": "private",
+        "endpoints": [
+          "POST /api/v1/private/order/create",
+          "POST /api/v1/private/order/submit_batch",
+          "GET /api/v1/private/order/list/open_orders/{symbol}",
+          "GET /api/v1/private/order/list/history_orders",
+          "GET /api/v1/private/order/external/{symbol}/{externalOid}",
+          "GET /api/v1/private/order/get/{orderId}",
+          "GET /api/v1/private/order/batch_query",
+          "GET /api/v1/private/order/deal_details/{orderId}",
+          "GET /api/v1/private/order/list/order_deals",
+          "POST /api/v1/private/order/cancel",
+          "POST /api/v1/private/order/cancel_with_external",
+          "POST /api/v1/private/order/cancel_all"
+        ],
+        "notes": [
+          "Use tiny size and prefer externalOid for live orders.",
+          "Respect place-order limits."
+        ]
+      },
+      "plan": {
+        "aliases": [
+          "tp",
+          "sl",
+          "take profit",
+          "stop loss",
+          "trailing",
+          "stoporder",
+          "planorder",
+          "stp"
+        ],
+        "auth": "private",
+        "endpoints": [
+          "GET /api/v1/private/planorder/list/orders",
+          "POST /api/v1/private/planorder/place",
+          "POST /api/v1/private/planorder/cancel",
+          "POST /api/v1/private/planorder/cancel_all",
+          "GET /api/v1/private/stoporder/order_details/{orderId}",
+          "POST /api/v1/private/stoporder/cancel",
+          "POST /api/v1/private/stoporder/cancel_all"
+        ],
+        "notes": [
+          "Verify exact STP endpoint paths against current official docs before adding local recipes."
+        ]
+      }
+    }
+  }
+}
