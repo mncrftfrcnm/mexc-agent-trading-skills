@@ -1,12 +1,83 @@
-MEXC Agent Trading Skills
+# MEXC Agent Trading Skills
 
 A set of skills that allow agents to interact with the MEXC trading platform through the official MEXC API.
 
 These skills can help agents query market data, use REST and WebSocket workflows, build signed requests, check account information, test orders, and optionally submit live trading requests when valid API credentials and explicit user confirmation are provided.
 
-What the Skills Allow a Model to Do
+## Public-readiness checklist
 
-"mexc-spot-rest"
+Before making this repository public, confirm the safety posture is visible and enforced:
+
+- CI passes on a clean checkout.
+- REST helper self-tests pass for Spot and Futures.
+- `python -m compileall codex_mexc_skills claude_mexc_skills` succeeds.
+- `gitleaks detect --source . --verbose` succeeds.
+- A local `trufflehog git file://. --only-verified` scan has been reviewed.
+- Git history has been inspected for accidentally committed credentials, `.env` files, logs, screenshots, signatures, listen keys, or private account payloads.
+- Documentation examples use placeholders only and require explicit confirmation before live trading actions.
+
+## Which folder do I use?
+
+This repository includes two target layouts. Choose the one that matches the agent environment you are installing into.
+
+### Claude / Claude Code / Claude Desktop
+
+Use the Claude-ready layout:
+
+```text
+claude_mexc_skills/.claude/skills/
+```
+
+Install or copy the skill folders from there into the Claude skills directory expected by your setup, for example:
+
+```text
+claude_mexc_skills/.claude/skills/mexc-spot-rest
+claude_mexc_skills/.claude/skills/mexc-spot-websocket
+claude_mexc_skills/.claude/skills/mexc-futures-rest
+claude_mexc_skills/.claude/skills/mexc-futures-websocket
+```
+
+Claude skill instructions use `${CLAUDE_SKILL_DIR}` so bundled helper scripts can be resolved from the installed skill root.
+
+### Codex / Codex-style repository agents
+
+Use the Codex-ready layout:
+
+```text
+codex_mexc_skills/skills/
+```
+
+Install or reference the skill folders from there in Codex-oriented project workflows:
+
+```text
+codex_mexc_skills/skills/mexc-spot-rest
+codex_mexc_skills/skills/mexc-spot-websocket
+codex_mexc_skills/skills/mexc-futures-rest
+codex_mexc_skills/skills/mexc-futures-websocket
+```
+
+Codex skill instructions resolve helper scripts relative to each skill folder.
+
+### Should I copy both?
+
+Usually, no. The Claude and Codex folders contain the same MEXC workflows in environment-specific layouts. Use both only if you are maintaining both Claude and Codex installations from the same checkout.
+
+## Continuous integration
+
+CI is configured in `.github/workflows/ci.yml` to run the minimum public-release checks:
+
+```bash
+python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
+python codex_mexc_skills/skills/mexc-futures-rest/scripts/mexc_futures_request.py --self-test
+python -m compileall codex_mexc_skills claude_mexc_skills
+gitleaks detect --source . --verbose
+```
+
+Run `trufflehog git file://. --only-verified` locally before public release as an additional history scan.
+
+## What the Skills Allow a Model to Do
+
+### `mexc-spot-rest`
 
 Use this skill for one-off MEXC Spot REST API tasks.
 
@@ -15,13 +86,13 @@ It can help an agent:
 - Query public Spot market data, server time, symbols, and exchange information
 - Read signed Spot account information such as balances and account status
 - Build and sign Spot REST requests using environment-variable API credentials
-- Test Spot orders with "/api/v3/order/test" before live execution
+- Test Spot orders with `/api/v3/order/test` before live execution
 - Place Spot buy/sell orders when explicitly requested and confirmed
 - Look up Spot REST endpoints and compact recipes for common workflows
 - Handle wallet/admin-style Spot REST actions when supported by the API
 - Avoid exposing API keys, secrets, signatures, or sensitive request data
 
-"mexc-spot-websocket"
+### `mexc-spot-websocket`
 
 Use this skill for live MEXC Spot streaming workflows.
 
@@ -36,7 +107,7 @@ It can help an agent:
 - Reconnect, resubscribe, and recover safely from stream interruptions
 - Protect listen keys and avoid logging temporary stream secrets
 
-"mexc-futures-rest"
+### `mexc-futures-rest`
 
 Use this skill for one-off MEXC Futures REST API tasks.
 
@@ -51,7 +122,7 @@ It can help an agent:
 - Look up Futures REST endpoints and compact recipes for common workflows
 - Use safer request patterns such as external order IDs and live-action confirmations
 
-"mexc-futures-websocket"
+### `mexc-futures-websocket`
 
 Use this skill for live MEXC Futures streaming workflows.
 
@@ -66,7 +137,7 @@ It can help an agent:
 - Redact private authentication payloads, signatures, and account-event data
 - Respect stream lifecycle, compression behavior, and rate-limit guidance
 
-Guide
+## Guide
 
 After adding these skills to your chosen agent, MEXC API credentials are required for signed account, order, and private-stream actions.
 
@@ -76,163 +147,208 @@ https://www.mexc.com/user/openapi
 
 Use API permissions carefully. For most trading workflows, withdrawal permissions should be disabled.
 
-Setting Environment Variables
+## Setting Environment Variables
 
 These skills expect the following environment variables:
 
+```env
 MEXC_API_KEY=your_api_key_here
 MEXC_API_SECRET=your_api_secret_here
+```
 
 Do not hard-code API keys or secrets inside source files. Do not paste real keys into prompts, logs, screenshots, or GitHub issues.
 
-Windows Command Prompt
+### Windows Command Prompt
 
 For the current Command Prompt session:
 
+```bat
 set MEXC_API_KEY=your_api_key_here
 set MEXC_API_SECRET=your_api_secret_here
+```
 
 For permanent user environment variables:
 
+```bat
 setx MEXC_API_KEY "your_api_key_here"
 setx MEXC_API_SECRET "your_api_secret_here"
+```
 
-After using "setx", close and reopen Command Prompt.
+After using `setx`, close and reopen Command Prompt.
 
-Windows PowerShell
+### Windows PowerShell
 
 For the current PowerShell session:
 
+```powershell
 $env:MEXC_API_KEY="your_api_key_here"
 $env:MEXC_API_SECRET="your_api_secret_here"
+```
 
 For permanent user environment variables:
 
+```powershell
 [Environment]::SetEnvironmentVariable("MEXC_API_KEY", "your_api_key_here", "User")
 [Environment]::SetEnvironmentVariable("MEXC_API_SECRET", "your_api_secret_here", "User")
+```
 
 After setting permanent variables, close and reopen PowerShell.
 
-macOS
+### macOS
 
 For the current terminal session:
 
+```bash
 export MEXC_API_KEY="your_api_key_here"
 export MEXC_API_SECRET="your_api_secret_here"
+```
 
 To make the variables available in future terminal sessions, add them to your shell profile.
 
 For zsh, which is the default shell on recent macOS versions:
 
+```bash
 nano ~/.zshrc
+```
 
 Add:
 
+```bash
 export MEXC_API_KEY="your_api_key_here"
 export MEXC_API_SECRET="your_api_secret_here"
+```
 
 Then reload the profile:
 
+```bash
 source ~/.zshrc
+```
 
 For bash:
 
+```bash
 nano ~/.bash_profile
+```
 
 Add:
 
+```bash
 export MEXC_API_KEY="your_api_key_here"
 export MEXC_API_SECRET="your_api_secret_here"
+```
 
 Then reload the profile:
 
+```bash
 source ~/.bash_profile
+```
 
-Linux
+### Linux
 
 For the current terminal session:
 
+```bash
 export MEXC_API_KEY="your_api_key_here"
 export MEXC_API_SECRET="your_api_secret_here"
+```
 
 To make the variables available in future terminal sessions, add them to your shell profile.
 
 For bash:
 
+```bash
 nano ~/.bashrc
+```
 
 Add:
 
+```bash
 export MEXC_API_KEY="your_api_key_here"
 export MEXC_API_SECRET="your_api_secret_here"
+```
 
 Then reload the profile:
 
+```bash
 source ~/.bashrc
+```
 
 For zsh:
 
+```bash
 nano ~/.zshrc
+```
 
 Add:
 
+```bash
 export MEXC_API_KEY="your_api_key_here"
 export MEXC_API_SECRET="your_api_secret_here"
+```
 
 Then reload the profile:
 
+```bash
 source ~/.zshrc
+```
 
-".env" File
+### `.env` File
 
-Some local development setups can load credentials from a ".env" file.
+Some local development setups can load credentials from a `.env` file.
 
-Create a ".env" file in your local project directory:
+Create a `.env` file in your local project directory:
 
+```env
 MEXC_API_KEY=your_api_key_here
 MEXC_API_SECRET=your_api_secret_here
+```
 
-Make sure ".env" is included in ".gitignore":
+Make sure `.env` is included in `.gitignore`:
 
+```gitignore
 .env
+```
 
-Never commit ".env" files to GitHub.
+Never commit `.env` files to GitHub.
 
-Example Agent Process: Buying on Spot
+## Example Agent Process: Buying on Spot
 
 For a Spot buy workflow, the agent should mainly use:
 
-- "mexc-spot-rest" for REST API calls, endpoint lookup, signed requests, account checks, test orders, and live order placement
-- "mexc-spot-websocket" only if live market data, order updates, or account updates are needed
+- `mexc-spot-rest` for REST API calls, endpoint lookup, signed requests, account checks, test orders, and live order placement
+- `mexc-spot-websocket` only if live market data, order updates, or account updates are needed
 
 The agent should not use Futures skills for Spot buying. Futures workflows use different endpoints, symbols, leverage rules, position logic, and risk controls.
 
 A safe Spot buy process should look like this:
 
 1. Understand the user request, including symbol, side, order type, amount, and whether the action is test-only or live.
-2. Use "mexc-spot-rest" to check Spot exchange information for the symbol.
+2. Use `mexc-spot-rest` to check Spot exchange information for the symbol.
 3. Check symbol rules such as minimum order size, precision, supported order types, and trading status.
-4. Use "mexc-spot-rest" to check current market data, such as ticker price or order book data.
+4. Use `mexc-spot-rest` to check current market data, such as ticker price or order book data.
 5. Use signed Spot REST requests to verify account balance and trading permissions.
 6. Prepare the order parameters.
-7. Use "/api/v3/order/test" first where supported.
+7. Use `/api/v3/order/test` first where supported.
 8. Ask the user for explicit confirmation before any live order.
 9. Submit the signed live Spot order only after confirmation.
 10. Verify the order result and status.
-11. Optionally use "mexc-spot-websocket" to monitor live order, balance, or market updates.
+11. Optionally use `mexc-spot-websocket` to monitor live order, balance, or market updates.
 12. Report the result without exposing API keys, secrets, signatures, listen keys, or private account payloads.
 
 Example market buy parameters:
 
+```json
 {
   "symbol": "BTCUSDT",
   "side": "BUY",
   "type": "MARKET",
   "quoteOrderQty": "25"
 }
+```
 
 Example limit buy parameters:
 
+```json
 {
   "symbol": "BTCUSDT",
   "side": "BUY",
@@ -241,8 +357,9 @@ Example limit buy parameters:
   "price": "60000",
   "timeInForce": "GTC"
 }
+```
 
-Safety Notice
+## Safety Notice
 
 This project is for developer and automation workflows only. Trading with real funds is risky.
 
@@ -257,7 +374,7 @@ Always:
 - Never expose API keys, API secrets, signatures, or listen keys
 - Confirm every live trading action before execution
 
-Disclaimer
+## Disclaimer
 
 This project is provided as-is for educational and developer automation purposes only. It is not financial advice, investment advice, trading advice, or a recommendation to buy, sell, or hold any asset.
 
