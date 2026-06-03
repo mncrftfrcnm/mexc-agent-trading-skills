@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Self-tests, compile, and secret scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Set up Go for gitleaks install
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Install gitleaks
+        run: go install github.com/gitleaks/gitleaks/v8@latest
+
+      - name: Run MEXC Spot REST self-test
+        run: python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
+
+      - name: Run MEXC Futures REST self-test
+        run: python codex_mexc_skills/skills/mexc-futures-rest/scripts/mexc_futures_request.py --self-test
+
+      - name: Compile Python files
+        run: python -m compileall codex_mexc_skills claude_mexc_skills
+
+      - name: Run gitleaks secret scan
+        run: gitleaks detect --source . --verbose
