@@ -1,0 +1,15 @@
+title = "mexc-agent-trading-skills gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Allow public MEXC Spot API documentation signing example secret used only for deterministic self-tests"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = [
+  '''DOCS_EXAMPLE_SECRET = "45d0b3c26f2644f19bfb98b07741b2f5"''',
+]
+paths = [
+  '''(^|/)mexc_spot_request\.py$''',
+]
