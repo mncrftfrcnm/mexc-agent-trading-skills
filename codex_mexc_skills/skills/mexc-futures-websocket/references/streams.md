@@ -1,6 +1,6 @@
 # MEXC Futures WebSocket Streams
 
-Source basis: official Futures docs checked 2026-05-30.
+Source basis: official Futures docs checked 2026-06-05.
 
 ## Base
 

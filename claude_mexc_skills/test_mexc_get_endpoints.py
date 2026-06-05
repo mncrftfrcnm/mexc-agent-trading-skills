@@ -33,7 +33,7 @@ TESTS: list[tuple[str, list[str]]] = [
     ("spot.account.myTrades.BTCUSDT", SPOT + ["GET", "/api/v3/myTrades", "--signed", "--params", '{"symbol":"BTCUSDT"}', "--execute"]),
     ("spot.orders.openOrders.BTCUSDT", SPOT + ["GET", "/api/v3/openOrders", "--signed", "--params", '{"symbol":"BTCUSDT"}', "--execute"]),
     ("spot.orders.allOrders.BTCUSDT", SPOT + ["GET", "/api/v3/allOrders", "--signed", "--params", '{"symbol":"BTCUSDT"}', "--execute"]),
-    ("spot.stream.listenKeys", SPOT + ["GET", "/api/v3/userDataStream", "--signed", "--execute"]),
+    ("spot.stream.listenKeys", SPOT + ["GET", "/api/v3/userDataStream", "--api-key-only", "--execute"]),
     ("spot.wallet.currencyConfig", SPOT + ["GET", "/api/v3/capital/config/getall", "--signed", "--execute"]),
     ("spot.wallet.depositHistory.USDT", SPOT + ["GET", "/api/v3/capital/deposit/hisrec", "--signed", "--params", '{"coin":"USDT"}', "--execute"]),
     ("spot.wallet.withdrawHistory.USDT", SPOT + ["GET", "/api/v3/capital/withdraw/history", "--signed", "--params", '{"coin":"USDT"}', "--execute"]),
@@ -70,6 +70,7 @@ TESTS: list[tuple[str, list[str]]] = [
     ("futures.orders.history.BTC_USDT", FUTURES + ["GET", "/api/v1/private/order/list/history_orders", "--signed", "--params", '{"symbol":"BTC_USDT","page_num":1,"page_size":20}', "--execute"]),
     ("futures.orders.deals.BTC_USDT", FUTURES + ["GET", "/api/v1/private/order/list/order_deals", "--signed", "--params", '{"symbol":"BTC_USDT","page_num":1,"page_size":20}', "--execute"]),
     ("futures.plan.orders.BTC_USDT", FUTURES + ["GET", "/api/v1/private/planorder/list/orders", "--signed", "--params", '{"symbol":"BTC_USDT","states":"1"}', "--execute"]),
+    ("futures.stoporder.list.BTC_USDT", FUTURES + ["GET", "/api/v1/private/stoporder/list/orders", "--signed", "--params", '{"symbol":"BTC_USDT","is_finished":0,"page_num":1,"page_size":20}', "--execute"]),
 ]
 
 SKIPPED = [
@@ -80,7 +81,6 @@ SKIPPED = [
     ("futures.orders.get", "requires real orderId"),
     ("futures.orders.batchQuery", "requires real orderIds"),
     ("futures.orders.dealDetails", "requires real orderId"),
-    ("futures.stoporder.details", "requires real stop_order_id"),
 ]
 
 SECRET_KEYS = {

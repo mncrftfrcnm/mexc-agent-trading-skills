@@ -43,13 +43,13 @@ DELETE /api/v3/openOrders --signed --params '{"symbol":"BTCUSDT"}'
 
 ## Listen Keys And Private Streams
 
-MEXC currently requires signed listen-key requests on the live Spot V3 API.
+Official Spot V3 docs list listen-key endpoints without `timestamp` or `signature` parameters; use API-key-only requests.
 
 ```bash
-POST /api/v3/userDataStream --signed --execute --confirm-live
-GET /api/v3/userDataStream --signed --execute
-PUT /api/v3/userDataStream --signed --params '{"listenKey":"<listenKey>"}' --execute --confirm-live
-DELETE /api/v3/userDataStream --signed --params '{"listenKey":"<listenKey>"}' --execute --confirm-live
+POST /api/v3/userDataStream --api-key-only --execute --confirm-live
+GET /api/v3/userDataStream --api-key-only --execute
+PUT /api/v3/userDataStream --api-key-only --params '{"listenKey":"<listenKey>"}' --execute --confirm-live
+DELETE /api/v3/userDataStream --api-key-only --params '{"listenKey":"<listenKey>"}' --execute --confirm-live
 ```
 
 Connect private Spot WebSocket clients to `ws://wbs-api.mexc.com/ws?listenKey=<listenKey>`.

@@ -1,6 +1,6 @@
 # MEXC Spot WebSocket Streams
 
-Source basis: official Spot V3 docs checked 2026-05-30.
+Source basis: official Spot V3 docs checked 2026-06-05.
 
 ## Bases
 
@@ -33,6 +33,6 @@ Subscribe to diff depth, fetch REST snapshot `GET /api/v3/depth?symbol=<symbol>&
 
 ## Private Streams
 
-Listen-key endpoints: `POST|GET|PUT|DELETE /api/v3/userDataStream` through the Spot REST helper with `--signed`. Extend every 30 minutes; listen keys last 60 minutes.
+Listen-key endpoints: `POST|GET|PUT|DELETE /api/v3/userDataStream` through the Spot REST helper with `--api-key-only`. Extend every 30 minutes; listen keys last 60 minutes.
 
 Private channels: `spot@private.account.v3.api.pb`, account orders, and account deals. Treat listen keys as temporary secrets.

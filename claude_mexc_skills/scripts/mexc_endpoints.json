@@ -86,7 +86,7 @@
           "private stream",
           "websocket"
         ],
-        "auth": "signed",
+        "auth": "api_key",
         "endpoints": [
           "POST /api/v3/userDataStream",
           "GET /api/v3/userDataStream",
@@ -94,7 +94,7 @@
           "DELETE /api/v3/userDataStream"
         ],
         "notes": [
-          "Live Spot V3 listen-key calls require signed requests.",
+          "Official Spot V3 listen-key docs list no timestamp or signature parameters; send X-MEXC-APIKEY.",
           "Treat listen keys as temporary secrets."
         ]
       },
@@ -164,7 +164,7 @@
   },
   "futures": {
     "name": "MEXC Futures REST",
-    "base_url": "https://api.mexc.com",
+    "base_url": "https://contract.mexc.com",
     "auth": {
       "public": "no authentication",
       "private": "ApiKey, Request-Time, Signature, optional Recv-Window",
@@ -249,7 +249,7 @@
         ],
         "auth": "private",
         "endpoints": [
-          "POST /api/v1/private/order/create",
+          "POST /api/v1/private/order/submit",
           "POST /api/v1/private/order/submit_batch",
           "GET /api/v1/private/order/list/open_orders/{symbol}",
           "GET /api/v1/private/order/list/history_orders",
@@ -284,9 +284,11 @@
           "POST /api/v1/private/planorder/place",
           "POST /api/v1/private/planorder/cancel",
           "POST /api/v1/private/planorder/cancel_all",
-          "GET /api/v1/private/stoporder/order_details/{orderId}",
+          "GET /api/v1/private/stoporder/list/orders",
           "POST /api/v1/private/stoporder/cancel",
-          "POST /api/v1/private/stoporder/cancel_all"
+          "POST /api/v1/private/stoporder/cancel_all",
+          "POST /api/v1/private/stoporder/change_price",
+          "POST /api/v1/private/stoporder/change_plan_price"
         ],
         "notes": [
           "Verify exact STP endpoint paths against current official docs before adding local recipes."

@@ -73,9 +73,11 @@ GET /api/v1/private/planorder/list/orders --signed --params '{"symbol":"BTC_USDT
 POST /api/v1/private/planorder/place --signed --params '{"symbol":"BTC_USDT","price":"10000","vol":"1","side":1,"openType":1,"triggerPrice":"11000","triggerType":1,"executeCycle":1,"orderType":1,"trend":1}'
 POST /api/v1/private/planorder/cancel --signed --params '[{"symbol":"BTC_USDT","orderId":"123456"}]'
 POST /api/v1/private/planorder/cancel_all --signed --params '{"symbol":"BTC_USDT"}'
-GET /api/v1/private/stoporder/order_details/123456 --signed --execute
+GET /api/v1/private/stoporder/list/orders --signed --params '{"symbol":"BTC_USDT","is_finished":0,"page_num":1,"page_size":20}' --execute
 POST /api/v1/private/stoporder/cancel --signed --params '[{"stopPlanOrderId":123456}]'
 POST /api/v1/private/stoporder/cancel_all --signed --params '{"symbol":"BTC_USDT"}'
+POST /api/v1/private/stoporder/change_price --signed --params '{"orderId":123456,"stopLossPrice":"9000","takeProfitPrice":"11000"}'
+POST /api/v1/private/stoporder/change_plan_price --signed --params '{"stopPlanOrderId":123456,"stopLossPrice":"9000","takeProfitPrice":"11000"}'
 ```
 
 ## STP And Matching Controls
