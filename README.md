@@ -9,7 +9,7 @@ These skills can help agents query market data, use REST and WebSocket workflows
 Before making this repository public, confirm the safety posture is visible and enforced:
 
 - REST helper self-tests pass for Spot and Futures.
-- `python -m compileall codex_mexc_skills claude_mexc_skills` succeeds.
+- `python -m compileall codex_mexc_skills claude_mexc_skills .claude` succeeds.
 - `gitleaks detect --source . --verbose` succeeds.
 - A local `trufflehog git file://. --only-verified` scan has been reviewed.
 - Git history has been inspected for accidentally committed credentials, `.env` files, logs, screenshots, signatures, listen keys, or private account payloads.
@@ -17,19 +17,29 @@ Before making this repository public, confirm the safety posture is visible and 
 
 ## Which folder do I use?
 
-This repository includes two target layouts. Choose the one that matches the agent environment you are installing into.
+This repository includes compatibility layouts for different agent environments and GitHub workflows. Choose the one that matches the agent environment you are installing into.
 
 ### Claude / Claude Code / Claude Desktop
 
-Use the Claude-ready layout:
+Use one of the Claude-ready layouts:
 
 ```text
+.claude/skills/
 claude_mexc_skills/.claude/skills/
 ```
 
-Install or copy the skill folders from there into the Claude skills directory expected by your setup, for example:
+Prefer the root `.claude/skills/` layout when you want Claude Code or other Claude tooling to auto-discover the skills directly from this repository checkout.
+
+Keep `claude_mexc_skills/.claude/skills/` as a compatibility copy. Some GitHub upload, web-editor, or file-management workflows can be awkward with hidden dot-directories such as `.claude`, especially when adding files. The non-hidden `claude_mexc_skills` folder avoids those dot-directory issues, but it is not auto-discoverable as a root `.claude/` project directory.
+
+Install or copy the skill folders from either Claude layout into the Claude skills directory expected by your setup, for example:
 
 ```text
+.claude/skills/mexc-spot-rest
+.claude/skills/mexc-spot-websocket
+.claude/skills/mexc-futures-rest
+.claude/skills/mexc-futures-websocket
+
 claude_mexc_skills/.claude/skills/mexc-spot-rest
 claude_mexc_skills/.claude/skills/mexc-spot-websocket
 claude_mexc_skills/.claude/skills/mexc-futures-rest
@@ -59,7 +69,7 @@ Codex skill instructions resolve helper scripts relative to each skill folder.
 
 ### Should I copy both?
 
-Usually, no. The Claude and Codex folders contain the same MEXC workflows in environment-specific layouts. Use both only if you are maintaining both Claude and Codex installations from the same checkout.
+Usually, no. The two Claude folders contain the same Claude skills for compatibility: root `.claude/skills/` is for auto-discovery, while `claude_mexc_skills/.claude/skills/` is the non-hidden compatibility copy for GitHub workflows that do not handle hidden dot-directories well. Use the Codex folder only if you are maintaining a Codex-style installation from the same checkout.
 
 ## Continuous integration
 
@@ -67,7 +77,7 @@ Usually, no. The Claude and Codex folders contain the same MEXC workflows in env
 ```bash
 python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
 python codex_mexc_skills/skills/mexc-futures-rest/scripts/mexc_futures_request.py --self-test
-python -m compileall codex_mexc_skills claude_mexc_skills
+python -m compileall codex_mexc_skills claude_mexc_skills .claude
 gitleaks detect --source . --verbose
 ```
 
