@@ -382,6 +382,26 @@ Always:
 - Never expose API keys, API secrets, signatures, or listen keys
 - Confirm every live trading action before execution
 
+## Safety Model
+
+This project is designed to make accidental live trading harder, but it cannot make trading safe.
+
+By default, helpers should prefer dry-run or test workflows. Any live authenticated non-GET request that can place, cancel, modify, or otherwise affect orders, balances, positions, or account state must require explicit user intent and confirmation.
+
+Users should:
+
+- Create dedicated MEXC API keys for this project only.
+- Disable withdrawal permissions.
+- Enable IP restrictions where supported.
+- Use the minimum permissions needed for the workflow.
+- Start with a sub-account or account with limited funds.
+- Test public-data, account-read, and test-order flows before live trading.
+- Review exact symbol, side, order type, price, quantity, leverage, margin mode, and account type before confirming any live action.
+- Never run live trading workflows unattended unless they have independently reviewed and accepted the risks.
+- Rotate or revoke API keys immediately if they are exposed in logs, prompts, screenshots, issues, commits, or terminal history.
+
+This project does not guarantee profitable trading, correct order execution, uninterrupted API access, protection from exchange outages, or protection from user or AI errors.
+
 ## Disclaimer
 
 This project is provided as-is for educational and developer automation purposes only. It is not financial advice, investment advice, trading advice, or a recommendation to buy, sell, or hold any asset.
