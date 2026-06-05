@@ -2,7 +2,7 @@
 
 Prepend every line below with `python scripts/mexc_futures_request.py`.
 For targeted lookup from this skill folder, use `python scripts/lookup.py <topic>`.
-Futures private writes are live-only and may be permission-gated; dry-run first and add `--execute --confirm-live` only when explicitly requested.
+Futures private writes are live-only and may be under maintenance or permission-gated; dry-run first, verify the current official docs, and add `--execute --confirm-live` only when explicitly requested.
 
 ## Market Data
 
@@ -31,6 +31,8 @@ GET /api/v1/private/account/tiered_fee_rate --signed --params '{"symbol":"BTC_US
 
 ## Positions
 
+Position-changing endpoints are private writes. Verify current official docs, account permissions, and maintenance status before live use.
+
 ```bash
 GET /api/v1/private/position/open_positions --signed --execute
 GET /api/v1/private/position/open_positions --signed --params '{"symbol":"BTC_USDT"}' --execute
@@ -45,8 +47,10 @@ POST /api/v1/private/position/change_position_mode --signed --params '{"position
 
 ## Orders
 
+Order submit, batch submit, cancel, and related private order workflows may be under maintenance or permission-gated in the official docs. Verify the current official endpoint status before live use.
+
 ```bash
-POST /api/v1/private/order/create --signed --params '{"symbol":"BTC_USDT","price":"10000","vol":"1","leverage":1,"side":1,"type":1,"openType":1}'
+POST /api/v1/private/order/submit --signed --params '{"symbol":"BTC_USDT","price":"10000","vol":"1","leverage":1,"side":1,"type":1,"openType":1}'
 POST /api/v1/private/order/submit_batch --signed --params '[{"symbol":"BTC_USDT","price":"10000","vol":"1","leverage":1,"side":1,"type":1,"openType":1}]'
 GET /api/v1/private/order/list/open_orders/BTC_USDT --signed --execute
 GET /api/v1/private/order/list/history_orders --signed --params '{"symbol":"BTC_USDT","page_num":1,"page_size":20}' --execute
@@ -61,6 +65,8 @@ POST /api/v1/private/order/cancel_all --signed --params '{"symbol":"BTC_USDT"}'
 ```
 
 ## Plan, TP/SL, And Trailing Orders
+
+Plan, TP/SL, trailing, and stop-order workflows may be under maintenance or permission-gated in the official docs. Verify the current official endpoint status before live use.
 
 ```bash
 GET /api/v1/private/planorder/list/orders --signed --params '{"symbol":"BTC_USDT","states":"1"}' --execute
