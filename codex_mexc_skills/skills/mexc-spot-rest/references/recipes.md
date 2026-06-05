@@ -56,14 +56,15 @@ Connect private Spot WebSocket clients to `ws://wbs-api.mexc.com/ws?listenKey=<l
 
 ## Wallet
 
-Use wallet write endpoints only when explicitly requested.
+Use wallet write endpoints only when explicitly requested. Withdrawal and deposit-address generation endpoints are live writes; verify the coin, network, address, memo/tag requirements, withdrawal fee, and official endpoint status before live use.
 
 ```bash
 GET /api/v3/capital/config/getall --signed --execute
 GET /api/v3/capital/deposit/hisrec --signed --params '{"coin":"USDT"}' --execute
 GET /api/v3/capital/withdraw/history --signed --params '{"coin":"USDT"}' --execute
 GET /api/v3/capital/deposit/address --signed --params '{"coin":"USDT","network":"TRX"}' --execute
-POST /api/v3/capital/withdraw/apply --signed --params '{"coin":"USDT","network":"TRX","address":"<address>","amount":"10"}'
+POST /api/v3/capital/deposit/address --signed --params '{"coin":"USDT","network":"TRX"}'
+POST /api/v3/capital/withdraw --signed --params '{"coin":"USDT","network":"TRX","address":"<address>","amount":"10"}'
 ```
 
 ## Sub-Accounts
