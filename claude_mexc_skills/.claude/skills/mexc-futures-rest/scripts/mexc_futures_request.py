@@ -34,7 +34,7 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-BASE_URL = "https://api.mexc.com"
+BASE_URL = "https://contract.mexc.com"
 EXAMPLES = "examples: GET /api/v1/contract/ping | GET /api/v1/private/account/assets --signed"
 SELF_TEST_ACCESS_KEY = "test-key"
 SELF_TEST_SECRET = "test-secret"
