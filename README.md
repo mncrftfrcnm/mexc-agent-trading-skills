@@ -98,7 +98,7 @@ It can help an agent:
 - Protect listen keys and avoid logging temporary stream secrets
 
 ### `mexc-futures-rest`
-
+**buying with futures is still in development, and may nto work all of the times
 Use this skill for one-off MEXC Futures REST API tasks.
 
 It can help an agent:
@@ -107,7 +107,7 @@ It can help an agent:
 - Read signed Futures account information such as assets, balances, and positions
 - Build and sign Futures REST requests using environment-variable API credentials
 - Check contract metadata, precision, leverage limits, and availability before trading
-- Create Futures orders when explicitly requested and confirmed
+- Create Futures orders when explicitly requested and confirmed     ----------still in testing
 - Work with order, position, leverage, and account workflows supported by the API
 - Look up Futures REST endpoints and compact recipes for common workflows
 - Use safer request patterns such as external order IDs and live-action confirmations
