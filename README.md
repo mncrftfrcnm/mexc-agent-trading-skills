@@ -59,7 +59,7 @@ Usually, no. The two Claude folders contain the same Claude skills for compatibi
 ```bash
 python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
 python codex_mexc_skills/skills/mexc-futures-rest/scripts/mexc_futures_request.py --self-test
-python -m compileall codex_mexc_skills claude_mexc_skills .claude
+python -m compileall codex_mexc_skills claude_mexc_skills
 gitleaks detect --source . --verbose
 ```
 
