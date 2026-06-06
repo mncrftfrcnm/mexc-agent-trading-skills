@@ -4,16 +4,6 @@ A set of skills that allow agents to interact with the MEXC trading platform thr
 
 These skills can help agents query market data, use REST and WebSocket workflows, build signed requests, check account information, test orders, and optionally submit live trading requests when valid API credentials and explicit user confirmation are provided.
 
-## Public-readiness checklist
-
-Before making this repository public, confirm the safety posture is visible and enforced:
-
-- REST helper self-tests pass for Spot and Futures.
-- `python -m compileall codex_mexc_skills claude_mexc_skills .claude` succeeds.
-- `gitleaks detect --source . --verbose` succeeds.
-- A local `trufflehog git file://. --only-verified` scan has been reviewed.
-- Git history has been inspected for accidentally committed credentials, `.env` files, logs, screenshots, signatures, listen keys, or private account payloads.
-- Documentation examples use placeholders only and require explicit confirmation before live trading actions.
 
 ## Which folder do I use?
 
@@ -24,21 +14,13 @@ This repository includes compatibility layouts for different agent environments 
 Use one of the Claude-ready layouts:
 
 ```text
-.claude/skills/
 claude_mexc_skills/.claude/skills/
+claude_mexc_skills/claude/skills/
+
 ```
-
-Prefer the root `.claude/skills/` layout when you want Claude Code or other Claude tooling to auto-discover the skills directly from this repository checkout.
-
-Keep `claude_mexc_skills/.claude/skills/` as a compatibility copy. Some GitHub upload, web-editor, or file-management workflows can be awkward with hidden dot-directories such as `.claude`, especially when adding files. The non-hidden `claude_mexc_skills` folder avoids those dot-directory issues, but it is not auto-discoverable as a root `.claude/` project directory.
-
-Install or copy the skill folders from either Claude layout into the Claude skills directory expected by your setup, for example:
+For claude-code prefer the .claude folder, just like in other skills. the 'claude' folder is left, because github uploads may sometimes work very bad with . files, so that's why there are two of them
 
 ```text
-.claude/skills/mexc-spot-rest
-.claude/skills/mexc-spot-websocket
-.claude/skills/mexc-futures-rest
-.claude/skills/mexc-futures-websocket
 
 claude_mexc_skills/.claude/skills/mexc-spot-rest
 claude_mexc_skills/.claude/skills/mexc-spot-websocket
