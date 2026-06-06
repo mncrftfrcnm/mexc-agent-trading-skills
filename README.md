@@ -51,7 +51,7 @@ Codex skill instructions resolve helper scripts relative to each skill folder.
 
 ### Should I copy both?
 
-Usually, no. The two Claude folders contain the same Claude skills for compatibility: root `.claude/skills/` is for auto-discovery, while `claude_mexc_skills/.claude/skills/` is the non-hidden compatibility copy for GitHub workflows that do not handle hidden dot-directories well. Use the Codex folder only if you are maintaining a Codex-style installation from the same checkout.
+Usually, no. The two Claude folders contain the same Claude skills for compatibility: root `claude_mexc_skills/.claude/skills/` is for auto-discovery, while `claude_mexc_skills/claude/skills/` is the non-hidden compatibility copy for GitHub workflows that do not handle hidden dot-directories well. Use the Codex folder only if you are maintaining a Codex-style installation from the same checkout.
 
 ## Continuous integration
 
