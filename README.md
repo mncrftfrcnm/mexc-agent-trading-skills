@@ -351,7 +351,7 @@ Example limit buy parameters:
 
 ## Safety Notice
 
-This project is for developer and automation workflows only. Trading with real funds is risky.
+This project is for developer and automation workflows only. Trading with real funds is risky. No warranty is provided. Use this project entirely at your own risk.
 
 Always:
 
@@ -391,5 +391,6 @@ This project is provided as-is for educational and developer automation purposes
 Trading cryptocurrency, Spot markets, Futures markets, and leveraged products involves significant risk and may result in partial or total loss of funds. Users are solely responsible for all actions taken using this software, including API requests, live orders, account access, agent behavior, trading decisions, security settings, and credential management.
 
 The authors, contributors, and maintainers accept no responsibility or liability for any losses, damages, failed trades, incorrect orders, missed orders, API errors, account restrictions, security issues, leaked credentials, misuse, or any other consequences resulting from the use of this project.
+No warranty is provided.
 
 Use this project entirely at your own risk.
