@@ -141,6 +141,20 @@ https://www.mexc.com/user/openapi
 
 Use API permissions carefully. For most trading workflows, withdrawal permissions should be disabled.
 
+
+### Credential handling warning
+
+Environment variables are safer than hard-coding keys in source files, but permanent shell-profile entries may still store secrets in plaintext on your machine.
+
+Recommended:
+
+- Create dedicated MEXC API keys for this project only.
+- Disable withdrawal permissions.
+- Enable IP restrictions where supported.
+- Use the minimum permissions needed.
+- Prefer session-only environment variables or an OS secret manager when possible.
+- Rotate or revoke keys immediately if they appear in logs, prompts, screenshots, issues, commits, or terminal history.
+
 ## Setting Environment Variables
 
 These skills expect the following environment variables:
