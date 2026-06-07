@@ -1,10 +1,10 @@
 # MEXC Agent Trading Skills
-### (No financial advice)
+### (No financial advice, trading with AI leads to financial risks)
 A set of skills that allow agents to interact with the MEXC trading platform through the official MEXC API.
 
 These skills can help agents query market data, use REST and WebSocket workflows, build signed requests, check account information, test orders, and optionally submit live trading requests when valid API credentials and explicit user confirmation are provided.
 
-
+Important: This project can interact with live trading APIs. Users are solely responsible for all use, including losses, account actions, credential security, and live orders. This project is not financial advice and is provided as-is with no guarantee or liability.
 ## Which folder do I use?
 
 This repository includes compatibility layouts for different agent environments and GitHub workflows. Choose the one that matches the agent environment you are installing into.
