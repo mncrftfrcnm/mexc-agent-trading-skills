@@ -5,3 +5,37 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+
+secrets/
+.secret/
+credentials.json
+credentials.*
+*_credentials.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+*.asc
+*.gpg
+
+# API/account dumps
+account*.json
+balance*.json
+orders*.json
+fills*.json
+positions*.json
+listen_key*
+listen-key*
+
+# Scanner outputs
+gitleaks-report.*
+trufflehog-report.*
+.secrets.baseline.tmp
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/settings.json
