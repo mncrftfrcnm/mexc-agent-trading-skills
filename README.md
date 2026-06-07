@@ -127,6 +127,8 @@ It can help an agent:
 - Redact private authentication payloads, signatures, and account-event data
 - Respect stream lifecycle, compression behavior, and rate-limit guidance
 
+So, instead of splitting skills into a lot of smaller files, they are split in 4 main skills, which should cut token prices. 
+
 ## Guide
 
 After adding these skills to your chosen agent, MEXC API credentials are required for signed account, order, and private-stream actions.
@@ -383,6 +385,8 @@ Users should:
 - Rotate or revoke API keys immediately if they are exposed in logs, prompts, screenshots, issues, commits, or terminal history.
 
 This project does not guarantee profitable trading, correct order execution, uninterrupted API access, protection from exchange outages, or protection from user or AI errors.
+
+(Authors do not take any responsibility)
 
 ## Disclaimer
 
