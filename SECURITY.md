@@ -45,15 +45,6 @@ Trading with real funds is risky. Any workflow that can submit a live order shou
 (authors do not take any responsibility for the losses)
 
 
-###Scope
-
-#This policy applies to this repository, including:
-
-Skill documentation.
-Helper scripts.
-GitHub Actions workflows.
-Example configuration.
-Public release and packaging files.
 
 Issues involving MEXC itself, the MEXC API, or third-party infrastructure should also be reported to the relevant provider.
 
