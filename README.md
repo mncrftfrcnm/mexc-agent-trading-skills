@@ -98,7 +98,7 @@ It can help an agent:
 - Protect listen keys and avoid logging temporary stream secrets
 
 ### `mexc-futures-rest`
-**Futures live-order support is experimental and may not work reliably in all cases, so you should test it yourself. Any contribution is wellcome!
+**Futures live-order support is experimental and may not work reliably in all cases, so you should test it yourself. Any contribution is welcome!
 Use this skill for one-off MEXC Futures REST API tasks.
 
 It can help an agent:
