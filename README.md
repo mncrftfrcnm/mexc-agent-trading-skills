@@ -109,8 +109,7 @@ It can help an agent:
 - Query public Futures contract data, contract details, and server status
 - Read signed Futures account information such as assets, balances, and positions
 - Build and sign Futures REST requests using environment-variable API credentials
-- Check contract metadata, precision, leverage limits, and availability before trading
-- Create Futures orders when explicitly requested and confirmed     ----------still in testing
+- Check contract metadata, precision, leverage limits, and availabil > Futures live-order support is experimental. Test carefully with small size and confirm current MEXC API behavior before using it with real funds.
 - Work with order, position, leverage, and account workflows supported by the API
 - Look up Futures REST endpoints and compact recipes for common workflows
 - Use safer request patterns such as external order IDs and live-action confirmations
