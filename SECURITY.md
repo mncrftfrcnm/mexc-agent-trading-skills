@@ -44,6 +44,21 @@ Trading with real funds is risky. Any workflow that can submit a live order shou
 - Redact secrets, signatures, listen keys, and private account data from output.
 (authors do not take any responsibility for the losses)
 
+
+###Scope
+
+#This policy applies to this repository, including:
+
+Skill documentation.
+Helper scripts.
+GitHub Actions workflows.
+Example configuration.
+Public release and packaging files.
+
+Issues involving MEXC itself, the MEXC API, or third-party infrastructure should also be reported to the relevant provider.
+
+
+
 ###Out of scope
 
 The following are not permitted:
