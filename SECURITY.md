@@ -42,6 +42,7 @@ Trading with real funds is risky. Any workflow that can submit a live order shou
 - Show exact order parameters before execution.
 - Require explicit user confirmation before live trading actions.
 - Redact secrets, signatures, listen keys, and private account data from output.
+(authors do not take any responsibility for the losses)
 
 ###Out of scope
 
