@@ -1,5 +1,5 @@
 # MEXC Agent Trading Skills
-### (No financial advice, trading with AI leads to financial risks)
+> No financial advice. AI-assisted trading can result in financial loss.
 A set of skills that allow agents to interact with the MEXC trading platform through the official MEXC API.
 
 These skills can help agents query market data, use REST and WebSocket workflows, build signed requests, check account information, test orders, and optionally submit live trading requests when valid API credentials and explicit user confirmation are provided.
