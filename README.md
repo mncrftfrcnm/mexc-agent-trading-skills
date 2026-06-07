@@ -129,7 +129,7 @@ It can help an agent:
 - Redact private authentication payloads, signatures, and account-event data
 - Respect stream lifecycle, compression behavior, and rate-limit guidance
 
-So, instead of splitting skills into a lot of smaller files, they are split in 4 main skills, which should cut token prices. 
+So, instead of splitting skills into a lot of smaller files, so instead the skills are grouped into four main areas to reduce duplicated context and token usage.
 
 ## Guide
 
