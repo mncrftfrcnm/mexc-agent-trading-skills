@@ -43,13 +43,15 @@ Trading with real funds is risky. Any workflow that can submit a live order shou
 - Require explicit user confirmation before live trading actions.
 - Redact secrets, signatures, listen keys, and private account data from output.
 
-## Public release checks
+###Out of scope
 
-Before making this repository public, run a local secret scan:
+The following are not permitted:
 
-```bash
-gitleaks detect --source . --verbose
-trufflehog git file://. --only-verified
-```
+Testing with accounts you do not own or control.
+Executing live trades without explicit authorization.
+Attempting to access, modify, or exfiltrate another user’s account data.
+Social engineering, phishing, spam, or physical attacks.
+Denial-of-service testing.
+Publicly disclosing an unfixed issue before the maintainer has had reasonable time to respond.
 
-Also inspect commit history for accidentally committed credentials or private account data.
+
