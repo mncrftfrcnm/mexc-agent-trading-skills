@@ -10,6 +10,16 @@ from typing import Any, Iterable
 
 ALLOWED_METHODS = {"GET", "POST", "PUT", "DELETE"}
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+DEFAULT_SENSITIVE_KEYS = frozenset(
+    {
+        "accesskey", "account", "accountid", "address", "apikey", "authorization",
+        "clientorderid", "depositaddress", "email", "externaloid", "fromaccount",
+        "invitecode", "ip", "listenkey", "memo", "orderid", "passphrase",
+        "password", "phone", "privatekey", "refercode", "secret", "secretkey",
+        "signature", "subaccount", "tag", "toaccount", "token", "transactionid",
+        "txid", "uid", "userid", "walletaddress", "withdrawaddress",
+    }
+)
 
 
 def strip_wrapping_quotes(value: str) -> str:
@@ -75,15 +85,30 @@ def normalize_path(path: str) -> str:
     return normalized
 
 
-def validate_base_url(base_url: str) -> str:
+def validate_base_url(
+    base_url: str,
+    *,
+    authenticated: bool = False,
+    allowed_authenticated_hosts: Iterable[str] = (),
+) -> str:
     parsed = urllib.parse.urlsplit(base_url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise SystemExit("--base-url must be an absolute http(s) URL.")
+    if parsed.username or parsed.password:
+        raise SystemExit("--base-url must not contain embedded credentials.")
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise SystemExit("--base-url must not include a path, query string, or fragment.")
-    host = parsed.hostname or ""
+    host = (parsed.hostname or "").lower()
     if parsed.scheme != "https" and host not in LOCAL_HOSTS:
         raise SystemExit("--base-url must use https unless it targets localhost.")
+    if authenticated:
+        allowed = {item.lower() for item in allowed_authenticated_hosts}
+        if parsed.scheme != "https" or host not in allowed or parsed.port not in {None, 443}:
+            choices = ", ".join(sorted(allowed))
+            raise SystemExit(
+                "Refusing to send authenticated credentials to this base URL. "
+                f"Allowed host(s): {choices}."
+            )
     return base_url.rstrip("/")
 
 
@@ -134,23 +159,106 @@ def validate_live_execution(
 
 
 def redact_headers(headers: dict[str, str], sensitive_keys: Iterable[str]) -> dict[str, str]:
-    sensitive = {key.lower() for key in sensitive_keys}
+    sensitive = {normalize_sensitive_key(key) for key in sensitive_keys}
     return {
-        key: "<redacted>" if key.lower() in sensitive else value
+        key: "<redacted>" if normalize_sensitive_key(key) in sensitive else value
         for key, value in headers.items()
     }
+
+
+def normalize_sensitive_key(key: str) -> str:
+    return "".join(ch for ch in key.lower() if ch.isalnum())
 
 
 def redact_query_params(text: str, sensitive_keys: Iterable[str]) -> str:
     parsed = urllib.parse.parse_qsl(text, keep_blank_values=True)
     if not parsed:
         return text
-    sensitive = {key.lower() for key in sensitive_keys}
+    sensitive = {normalize_sensitive_key(key) for key in sensitive_keys}
     parts = []
     for key, value in parsed:
         encoded_key = urllib.parse.quote_plus(key)
-        if key.lower() in sensitive:
+        if normalize_sensitive_key(key) in sensitive:
             parts.append(f"{encoded_key}=<redacted>")
         else:
             parts.append(f"{encoded_key}={urllib.parse.quote_plus(value)}")
     return "&".join(parts)
+
+
+def redact_json_value(
+    value: Any,
+    sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS,
+) -> Any:
+    sensitive = {normalize_sensitive_key(key) for key in sensitive_keys}
+    if isinstance(value, dict):
+        return {
+            str(key): (
+                "<redacted>"
+                if normalize_sensitive_key(str(key)) in sensitive
+                and item not in (None, "", [], {})
+                else redact_json_value(item, sensitive)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_json_value(item, sensitive) for item in value]
+    return value
+
+
+def redact_json_text(
+    text: str,
+    sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS,
+) -> str:
+    if not text:
+        return text
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        return "<redacted non-JSON payload>"
+    return json.dumps(
+        redact_json_value(value, sensitive_keys),
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+
+
+def format_http_response(
+    text: str,
+    *,
+    status: int,
+    authenticated: bool,
+    show_private_response: bool,
+) -> str:
+    if not authenticated:
+        return text
+    if show_private_response:
+        return redact_json_text(text)
+
+    summary: dict[str, Any] = {
+        "private_response": True,
+        "http_status": status,
+    }
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        summary.update({"type": "text", "bytes": len(text.encode("utf-8"))})
+    else:
+        if isinstance(value, dict):
+            summary["type"] = "object"
+            summary["field_count"] = len(value)
+            collection_sizes = [
+                len(item)
+                for item in value.values()
+                if isinstance(item, (dict, list))
+            ]
+            if collection_sizes:
+                summary["collection_sizes"] = collection_sizes
+            for key in ("success", "code"):
+                item = value.get(key)
+                if isinstance(item, (bool, int, float)) or item is None:
+                    summary[key] = item
+        elif isinstance(value, list):
+            summary.update({"type": "list", "count": len(value)})
+        else:
+            summary["type"] = type(value).__name__
+    return json.dumps(summary, indent=2, ensure_ascii=True)
