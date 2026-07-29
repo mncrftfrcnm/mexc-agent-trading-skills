@@ -39,3 +39,62 @@ trufflehog-report.*
 .DS_Store
 .idea/
 .vscode/settings.json
+
+# Keep sanitized templates despite .env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Environment loaders
+.envrc
+.direnv/
+
+# Python tooling, tests, and builds
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+junit.xml
+build/
+dist/
+*.egg-info/
+
+# Local API captures and sensitive operational data
+logs/
+artifacts/
+captures/
+exports/
+requests/
+responses/
+*.har
+*.pcap
+*.pcapng
+cookies*.txt
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary files
+.cache/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# Editor configuration
+.vscode/*
+!.vscode/extensions.json
+
+# Additional key-store formats
+*.jks
+*.keystore
+*.kdbx
+*.der
+*.cer
