@@ -4,8 +4,8 @@ Source basis: official Spot V3 docs checked 2026-06-05.
 
 ## Bases
 
-- Public: `ws://wbs-api.mexc.com/ws`
-- Private: `ws://wbs-api.mexc.com/ws?listenKey=<listenKey>`
+- Public: `wss://wbs-api.mexc.com/ws`
+- Private: `wss://wbs-api.mexc.com/ws?listenKey=<listenKey>`
 - Listen-key REST: `https://api.mexc.com`
 
 ## Lifecycle

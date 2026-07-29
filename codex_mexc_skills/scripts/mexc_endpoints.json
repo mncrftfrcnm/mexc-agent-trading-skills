@@ -164,7 +164,7 @@
   },
   "futures": {
     "name": "MEXC Futures REST",
-    "base_url": "https://contract.mexc.com",
+    "base_url": "https://api.mexc.com",
     "auth": {
       "public": "no authentication",
       "private": "ApiKey, Request-Time, Signature, optional Recv-Window",

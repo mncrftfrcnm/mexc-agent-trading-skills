@@ -18,12 +18,16 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from mexc_common import (  # noqa: E402
+    DEFAULT_SENSITIVE_KEYS,
     ensure_no_signed_query,
+    format_http_response,
     load_json_params,
     normalize_method,
     normalize_path,
     read_mexc_credentials,
     redact_headers as redact_auth_headers,
+    redact_json_text,
+    redact_query_params,
     strip_wrapping_quotes,
     validate_base_url,
     validate_live_execution,
@@ -34,7 +38,8 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-BASE_URL = "https://contract.mexc.com"
+BASE_URL = "https://api.mexc.com"
+AUTHENTICATED_HOSTS = {"api.mexc.com"}
 EXAMPLES = "examples: GET /api/v1/contract/ping | GET /api/v1/private/account/assets --signed"
 SELF_TEST_ACCESS_KEY = "test-key"
 SELF_TEST_SECRET = "test-secret"
@@ -79,7 +84,10 @@ def build_request(args: argparse.Namespace) -> tuple[str, str, dict[str, str], b
     method = normalize_method(args.method)
     path = normalize_path(args.path)
     ensure_no_signed_query(path, args.signed)
-    url = validate_base_url(args.base_url) + path
+    url = validate_base_url(
+        args.base_url, authenticated=args.signed,
+        allowed_authenticated_hosts=AUTHENTICATED_HOSTS,
+    ) + path
     params = load_params(args.params)
     headers: dict[str, str] = {"User-Agent": "codex-mexc-futures-helper/1.0"}
     body: bytes | None = None
@@ -109,15 +117,30 @@ def build_request(args: argparse.Namespace) -> tuple[str, str, dict[str, str], b
     return method, url, headers, body, printable_body
 
 
-def execute(method: str, url: str, headers: dict[str, str], body: bytes | None) -> int:
+def execute(
+    method: str, url: str, headers: dict[str, str], body: bytes | None,
+    *, authenticated: bool, show_private_response: bool,
+) -> int:
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
-            sys.stdout.write(response.read().decode("utf-8", errors="replace"))
-            return 0 if 200 <= int(response.status) < 300 else int(response.status)
+            status = int(response.status)
+            text = response.read().decode("utf-8", errors="replace")
+            sys.stdout.write(format_http_response(
+                text, status=status, authenticated=authenticated,
+                show_private_response=show_private_response,
+            ))
+            return 0 if 200 <= status < 300 else 1
     except urllib.error.HTTPError as exc:
-        sys.stderr.write(exc.read().decode("utf-8", errors="replace"))
-        return int(exc.code)
+        text = exc.read().decode("utf-8", errors="replace")
+        sys.stderr.write(format_http_response(
+            text, status=int(exc.code), authenticated=authenticated,
+            show_private_response=show_private_response,
+        ))
+        return 1
+    except (urllib.error.URLError, TimeoutError):
+        sys.stderr.write("Network request failed; signed URL and request details were suppressed.\n")
+        return 1
 
 
 def self_test() -> None:
@@ -146,6 +169,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--signed", action="store_true", help="Sign request using env credentials")
     parser.add_argument("--execute", action="store_true", help="Send the request. Default is dry-run.")
     parser.add_argument("--confirm-live", action="store_true", help="Allow live signed non-GET requests")
+    parser.add_argument(
+        "--show-private-response", action="store_true",
+        help="Print a redacted private response instead of the default metadata-only summary",
+    )
     parser.add_argument("--recv-window", default="10", help="Futures Recv-Window header in seconds")
     parser.add_argument("--timestamp", help="Override timestamp in milliseconds, mainly for tests")
     parser.add_argument("--base-url", default=BASE_URL)
@@ -174,18 +201,26 @@ def main() -> int:
     )
     method, url, headers, body, printable_body = build_request(args)
     if not args.execute:
+        parsed_url = urllib.parse.urlsplit(url)
+        redacted_query = redact_query_params(parsed_url.query, DEFAULT_SENSITIVE_KEYS)
+        safe_url = urllib.parse.urlunsplit(
+            (parsed_url.scheme, parsed_url.netloc, parsed_url.path, redacted_query, parsed_url.fragment)
+        )
         print(json.dumps(
             {
                 "dry_run": True,
                 "method": method,
-                "url": url,
+                "url": safe_url,
                 "headers": redact_headers(headers),
-                "body": printable_body,
+                "body": redact_json_text(printable_body),
             },
             indent=2,
         ))
         return 0
-    return execute(method, url, headers, body)
+    return execute(
+        method, url, headers, body, authenticated=args.signed,
+        show_private_response=args.show_private_response,
+    )
 
 
 if __name__ == "__main__":

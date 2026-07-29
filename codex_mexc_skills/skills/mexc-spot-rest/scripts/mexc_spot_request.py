@@ -18,7 +18,9 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from mexc_common import (  # noqa: E402
+    DEFAULT_SENSITIVE_KEYS,
     ensure_no_signed_query,
+    format_http_response,
     load_json_params,
     normalize_method,
     normalize_path,
@@ -37,6 +39,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 BASE_URL = "https://api.mexc.com"
+AUTHENTICATED_HOSTS = {"api.mexc.com"}
 EXAMPLES = "examples: GET /api/v3/time | GET /api/v3/account --signed"
 DOCS_EXAMPLE_SECRET = "45d0b3c26f2644f19bfb98b07741b2f5"
 DOCS_EXAMPLE_QUERY = (
@@ -76,15 +79,19 @@ def redact_headers(headers: dict[str, str]) -> dict[str, str]:
     return redact_auth_headers(headers, {"X-MEXC-APIKEY"})
 
 
-def redact_signature(text: str) -> str:
-    return redact_query_params(text, {"signature"})
+def redact_sensitive_params(text: str) -> str:
+    return redact_query_params(text, DEFAULT_SENSITIVE_KEYS)
 
 
 def build_request(args: argparse.Namespace) -> tuple[str, str, dict[str, str], bytes | None, str]:
     method = normalize_method(args.method)
     path = normalize_path(args.path)
     ensure_no_signed_query(path, args.signed)
-    url = validate_base_url(args.base_url) + path
+    url = validate_base_url(
+        args.base_url,
+        authenticated=args.signed or args.api_key_only,
+        allowed_authenticated_hosts=AUTHENTICATED_HOSTS,
+    ) + path
     headers: dict[str, str] = {"User-Agent": "codex-mexc-spot-helper/1.0"}
     params = load_params(args.params)
     body: bytes | None = None
@@ -117,15 +124,30 @@ def build_request(args: argparse.Namespace) -> tuple[str, str, dict[str, str], b
     return method, url, headers, body, printable_body
 
 
-def execute(method: str, url: str, headers: dict[str, str], body: bytes | None) -> int:
+def execute(
+    method: str, url: str, headers: dict[str, str], body: bytes | None,
+    *, authenticated: bool, show_private_response: bool,
+) -> int:
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
-            sys.stdout.write(response.read().decode("utf-8", errors="replace"))
-            return 0 if 200 <= int(response.status) < 300 else int(response.status)
+            status = int(response.status)
+            text = response.read().decode("utf-8", errors="replace")
+            sys.stdout.write(format_http_response(
+                text, status=status, authenticated=authenticated,
+                show_private_response=show_private_response,
+            ))
+            return 0 if 200 <= status < 300 else 1
     except urllib.error.HTTPError as exc:
-        sys.stderr.write(exc.read().decode("utf-8", errors="replace"))
-        return int(exc.code)
+        text = exc.read().decode("utf-8", errors="replace")
+        sys.stderr.write(format_http_response(
+            text, status=int(exc.code), authenticated=authenticated,
+            show_private_response=show_private_response,
+        ))
+        return 1
+    except (urllib.error.URLError, TimeoutError):
+        sys.stderr.write("Network request failed; signed URL and request details were suppressed.\n")
+        return 1
 
 
 def self_test() -> None:
@@ -150,6 +172,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--signed", action="store_true", help="Sign request using env credentials")
     parser.add_argument("--execute", action="store_true", help="Send the request. Default is dry-run.")
     parser.add_argument("--confirm-live", action="store_true", help="Allow live signed non-GET requests")
+    parser.add_argument(
+        "--show-private-response", action="store_true",
+        help="Print a redacted private response instead of the default metadata-only summary",
+    )
     parser.add_argument("--recv-window", default="5000", help="Spot recvWindow in milliseconds")
     parser.add_argument("--timestamp", help="Override timestamp in milliseconds, mainly for tests")
     parser.add_argument("--base-url", default=BASE_URL)
@@ -182,7 +208,7 @@ def main() -> int:
     method, url, headers, body, printable_body = build_request(args)
     if not args.execute:
         parsed_url = urllib.parse.urlsplit(url)
-        redacted_query = redact_signature(parsed_url.query)
+        redacted_query = redact_sensitive_params(parsed_url.query)
         safe_url = urllib.parse.urlunsplit(
             (parsed_url.scheme, parsed_url.netloc, parsed_url.path, redacted_query, parsed_url.fragment)
         )
@@ -192,12 +218,16 @@ def main() -> int:
                 "method": method,
                 "url": safe_url,
                 "headers": redact_headers(headers),
-                "body": redact_signature(printable_body),
+                "body": redact_sensitive_params(printable_body),
             },
             indent=2,
         ))
         return 0
-    return execute(method, url, headers, body)
+    return execute(
+        method, url, headers, body,
+        authenticated=args.signed or args.api_key_only,
+        show_private_response=args.show_private_response,
+    )
 
 
 if __name__ == "__main__":

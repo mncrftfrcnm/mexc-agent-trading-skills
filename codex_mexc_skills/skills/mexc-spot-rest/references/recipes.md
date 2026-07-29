@@ -52,7 +52,7 @@ PUT /api/v3/userDataStream --api-key-only --params '{"listenKey":"<listenKey>"}'
 DELETE /api/v3/userDataStream --api-key-only --params '{"listenKey":"<listenKey>"}' --execute --confirm-live
 ```
 
-Connect private Spot WebSocket clients to `ws://wbs-api.mexc.com/ws?listenKey=<listenKey>`.
+Connect private Spot WebSocket clients to `wss://wbs-api.mexc.com/ws?listenKey=<listenKey>`.
 
 ## Wallet
 
