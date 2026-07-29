@@ -10,7 +10,7 @@ python "${CLAUDE_SKILL_DIR}/scripts/lookup.py" <topic>
 
 ## Auth Summary
 
-- Base URL: `https://contract.mexc.com`
+- Base URL: `https://api.mexc.com`
 - Public: no authentication.
 - Private: `ApiKey`, `Request-Time`, `Signature`, optional `Recv-Window`.
 - Signature target: `accessKey + timestamp + parameterString`; GET/DELETE params are sorted, POST signs compact JSON.
@@ -26,4 +26,4 @@ python "${CLAUDE_SKILL_DIR}/scripts/lookup.py" <topic>
 - Use exact decimal strings and prefer `externalOid` for live order idempotency.
 - MEXC is live-only; respect place-order limits and back off on errors.
 - Some private order, batch-order, cancel, plan-order, and stop-order workflows may be under maintenance or permission-gated in official docs; verify the exact endpoint status before using them live.
-- Keep Futures REST on `https://contract.mexc.com`; keep Futures WebSocket code on `wss://contract.mexc.com/edge` from the WebSocket skill.
+- Keep Futures REST on `https://api.mexc.com`; keep Futures WebSocket code on `wss://contract.mexc.com/edge` from the WebSocket skill.

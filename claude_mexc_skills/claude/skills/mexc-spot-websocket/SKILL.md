@@ -10,7 +10,7 @@ description: MEXC Spot WebSocket workflows for public streams, protobuf handling
 Use this skill for streaming, not one-off REST queries. Open `references/streams.md` only for exact stream names and lifecycle details.
 
 1. Use public REST endpoints for snapshots and WebSocket streams for increments.
-2. Use `ws://wbs-api.mexc.com/ws` for public Spot streams.
+2. Use `wss://wbs-api.mexc.com/ws` for public Spot streams.
 3. For private streams, use `/mexc-spot-rest` to create a signed listen key, then connect to `/ws?listenKey=...`.
 4. Do not print or persist listen keys except in local process memory needed for the connection.
 5. Reconnect before the 24-hour connection limit and extend listen keys every 30 minutes.
