@@ -12,6 +12,7 @@ permissions:
 env:
   GITLEAKS_COMMIT: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e
   TRUFFLEHOG_COMMIT: 6f3c981e7b77f235fd2702dd74af25fc4b72bf11
+  GOTOOLCHAIN: local
 
 jobs:
   verify:
@@ -39,20 +40,34 @@ jobs:
           go-version: "1.26.5"
           cache: false
 
-      - name: Install pinned scanners
+      - name: Build pinned scanners from exact source commits
         id: scanner_install
         if: steps.setup_go.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/security-bin"
-          export GOBIN="$RUNNER_TEMP/security-bin"
-          go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_COMMIT}"
-          go install "github.com/trufflesecurity/trufflehog/v3@${TRUFFLEHOG_COMMIT}"
-          echo "$GOBIN" >> "$GITHUB_PATH"
-          "$GOBIN/gitleaks" version
-          "$GOBIN/trufflehog" --version
+          BIN_DIR="$RUNNER_TEMP/security-bin"
+          mkdir -p "$BIN_DIR"
+
+          build_scanner() {
+            local repo_url="$1"
+            local commit="$2"
+            local name="$3"
+            local src="$RUNNER_TEMP/${name}-src"
+            git init -q "$src"
+            git -C "$src" remote add origin "$repo_url"
+            git -C "$src" -c protocol.version=2 fetch --quiet --depth=1 origin "$commit"
+            git -C "$src" checkout --quiet --detach FETCH_HEAD
+            test "$(git -C "$src" rev-parse HEAD)" = "$commit"
+            (cd "$src" && go build -trimpath -o "$BIN_DIR/$name" .)
+          }
+
+          build_scanner https://github.com/gitleaks/gitleaks.git "$GITLEAKS_COMMIT" gitleaks
+          build_scanner https://github.com/trufflesecurity/trufflehog.git "$TRUFFLEHOG_COMMIT" trufflehog
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          "$BIN_DIR/gitleaks" version
+          "$BIN_DIR/trufflehog" --version
 
       - name: Run Python security and compatibility suite
         id: python_tests
@@ -120,7 +135,7 @@ jobs:
           }
           post_status 'security-hardening/setup-python' "$SETUP_PYTHON" 'Pinned setup-python resolved Python 3.14'
           post_status 'security-hardening/setup-go' "$SETUP_GO" 'Pinned setup-go resolved Go 1.26.5'
-          post_status 'security-hardening/scanner-install' "$SCANNER_INSTALL" 'Pinned Gitleaks and TruffleHog compile/install'
+          post_status 'security-hardening/scanner-install' "$SCANNER_INSTALL" 'Pinned scanner commits fetched, verified, and built'
           post_status 'security-hardening/python-tests' "$PYTHON_TESTS" 'Security tests, self-tests, compileall'
           post_status 'security-hardening/gitleaks' "$GITLEAKS_SCAN" 'Gitleaks full-history scan'
           post_status 'security-hardening/trufflehog' "$TRUFFLEHOG_SCAN" 'TruffleHog verified-secret scan'
