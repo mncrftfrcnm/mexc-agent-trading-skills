@@ -1,0 +1,12 @@
+# Security-sensitive repository configuration and workflows.
+/.github/ @mncrftfrcnm
+
+# Security regression tests.
+/tests/ @mncrftfrcnm
+
+# Trading request helpers, validation, and agent skills.
+/codex_mexc_skills/skills/ @mncrftfrcnm
+/claude_mexc_skills/ @mncrftfrcnm
+
+# Security policy changes require explicit owner review.
+/SECURITY.md @mncrftfrcnm
