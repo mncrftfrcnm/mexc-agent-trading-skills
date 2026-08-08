@@ -71,6 +71,33 @@ class RepeatedAdversarialTests(unittest.TestCase):
                         )
                     self.assertTrue((Path(directory) / f"{digest}.json").exists())
 
+    def test_100_path_tampering_attempts_cannot_reuse_confirmation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.dict(os.environ, {common.CONFIRMATION_DIR_ENV: directory}):
+                for index in range(100):
+                    params = {
+                        "symbol": "BTCUSDT",
+                        "side": "SELL",
+                        "quantity": f"0.{index + 1:04d}",
+                    }
+                    prepared = common.prepare_live_confirmation(
+                        method="POST",
+                        path="/api/v3/order",
+                        params=params,
+                        authenticated=True,
+                    )
+                    digest = prepared["live_confirmation"]
+                    with self.assertRaises(SystemExit):
+                        common.validate_live_execution(
+                            execute=True,
+                            confirm_live=digest,
+                            method="POST",
+                            path="/api/v3/order/cancel",
+                            params=params,
+                            authenticated=True,
+                        )
+                    self.assertTrue((Path(directory) / f"{digest}.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
