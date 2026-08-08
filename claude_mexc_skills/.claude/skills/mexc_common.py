@@ -165,12 +165,18 @@ def _confirmation_directory() -> Path:
 
 
 def _canonical_confirmation_request(method: str, path: str, params: Any) -> dict[str, Any]:
-    return {"method": normalize_method(method), "path": normalize_path(path), "params": params}
+    return {
+        "method": normalize_method(method),
+        "path": normalize_path(path),
+        "params": params,
+    }
 
 
 def _confirmation_digest(record: dict[str, Any]) -> str:
     canonical = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return hashlib.sha256(("mexc-live-confirmation-v1\n" + canonical).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        ("mexc-live-confirmation-v1\n" + canonical).encode("utf-8")
+    ).hexdigest()
 
 
 def _receipt_path(digest: str) -> Path:
@@ -195,20 +201,35 @@ def _remove_expired_receipts(now: int) -> None:
 
 
 def prepare_live_confirmation(
-    *, method: str, path: str, params: Any, authenticated: bool,
+    *,
+    method: str,
+    path: str,
+    params: Any,
+    authenticated: bool,
     safe_requests: Iterable[tuple[str, str]] = (),
     ttl_seconds: int = CONFIRMATION_TTL_SECONDS,
 ) -> dict[str, Any]:
     if ttl_seconds < 1 or ttl_seconds > 300:
         raise SystemExit("Confirmation TTL must be between 1 and 300 seconds.")
-    if not is_authenticated_mutation(method, path, authenticated, safe_requests=safe_requests):
-        raise SystemExit("--prepare-live is only valid for authenticated state-changing requests.")
+    if not is_authenticated_mutation(
+        method,
+        path,
+        authenticated,
+        safe_requests=safe_requests,
+    ):
+        raise SystemExit(
+            "--prepare-live is only valid for authenticated state-changing requests."
+        )
+
     now = int(time.time())
     _remove_expired_receipts(now)
     request = _canonical_confirmation_request(method, path, params)
     record: dict[str, Any] = {
-        "version": 1, **request, "nonce": secrets.token_hex(16),
-        "created_at": now, "expires_at": now + ttl_seconds,
+        "version": 1,
+        **request,
+        "nonce": secrets.token_hex(16),
+        "created_at": now,
+        "expires_at": now + ttl_seconds,
     }
     digest = _confirmation_digest(record)
     target = _receipt_path(digest)
@@ -217,13 +238,30 @@ def prepare_live_confirmation(
         flags |= os.O_NOFOLLOW
     fd = os.open(target, flags, 0o600)
     try:
-        os.write(fd, json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8"))
+        payload = json.dumps(
+            record,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        os.write(fd, payload.encode("utf-8"))
     finally:
         os.close(fd)
-    return {"live_confirmation": digest, "expires_at": record["expires_at"], "ttl_seconds": ttl_seconds, "request": request}
+    return {
+        "live_confirmation": digest,
+        "expires_at": record["expires_at"],
+        "ttl_seconds": ttl_seconds,
+        "request": request,
+    }
 
 
-def consume_live_confirmation(digest: str, *, method: str, path: str, params: Any) -> None:
+def consume_live_confirmation(
+    digest: str,
+    *,
+    method: str,
+    path: str,
+    params: Any,
+) -> None:
     target = _receipt_path(digest)
     flags = os.O_RDONLY
     if hasattr(os, "O_NOFOLLOW"):
@@ -231,7 +269,9 @@ def consume_live_confirmation(digest: str, *, method: str, path: str, params: An
     try:
         fd = os.open(target, flags)
     except FileNotFoundError as exc:
-        raise SystemExit("Live confirmation is missing, expired, or already used.") from exc
+        raise SystemExit(
+            "Live confirmation is missing, expired, or already used."
+        ) from exc
     try:
         raw = os.read(fd, 1024 * 1024).decode("utf-8")
     finally:
@@ -242,22 +282,35 @@ def consume_live_confirmation(digest: str, *, method: str, path: str, params: An
         raise SystemExit("Live confirmation receipt is invalid.") from exc
     if not isinstance(record, dict) or record.get("version") != 1:
         raise SystemExit("Live confirmation receipt is invalid.")
-    if not hmac.compare_digest(_confirmation_digest(record), digest):
+    expected = _confirmation_digest(record)
+    if not hmac.compare_digest(expected, digest):
         raise SystemExit("Live confirmation receipt failed integrity validation.")
+
+    now = int(time.time())
     try:
         expires_at = int(record["expires_at"])
     except (KeyError, TypeError, ValueError) as exc:
         raise SystemExit("Live confirmation receipt is invalid.") from exc
-    if expires_at < int(time.time()):
+    if expires_at < now:
         try:
             target.unlink()
         except OSError:
             pass
         raise SystemExit("Live confirmation expired. Prepare the request again.")
+
     actual_request = _canonical_confirmation_request(method, path, params)
-    recorded_request = {"method": record.get("method"), "path": record.get("path"), "params": record.get("params")}
+    recorded_request = {
+        "method": record.get("method"),
+        "path": record.get("path"),
+        "params": record.get("params"),
+    }
     if actual_request != recorded_request:
-        raise SystemExit("Live request does not match the transaction that was confirmed.")
+        raise SystemExit(
+            "Live request does not match the transaction that was confirmed."
+        )
+
+    # Consume before network I/O so the same authorization cannot be replayed if
+    # the exchange response is lost or ambiguous.
     try:
         target.unlink()
     except FileNotFoundError as exc:
@@ -265,27 +318,47 @@ def consume_live_confirmation(digest: str, *, method: str, path: str, params: An
 
 
 def validate_live_execution(
-    *, execute: bool, confirm_live: str | None, method: str, path: str,
-    params: Any, authenticated: bool,
+    *,
+    execute: bool,
+    confirm_live: str | None,
+    method: str,
+    path: str,
+    params: Any,
+    authenticated: bool,
     safe_requests: Iterable[tuple[str, str]] = (),
 ) -> None:
-    mutation = is_authenticated_mutation(method, path, authenticated, safe_requests=safe_requests)
+    mutation = is_authenticated_mutation(
+        method,
+        path,
+        authenticated,
+        safe_requests=safe_requests,
+    )
     if confirm_live and not execute:
         raise SystemExit("--confirm-live is only valid with --execute.")
     if confirm_live and not mutation:
-        raise SystemExit("--confirm-live is only valid for authenticated state-changing requests.")
+        raise SystemExit(
+            "--confirm-live is only valid for authenticated state-changing requests."
+        )
     if execute and mutation:
         if not confirm_live:
             raise SystemExit(
                 "Refusing live authenticated state-changing request. "
                 "Run --prepare-live first, review the exact transaction, then pass its digest with --confirm-live."
             )
-        consume_live_confirmation(confirm_live, method=method, path=path, params=params)
+        consume_live_confirmation(
+            confirm_live,
+            method=method,
+            path=path,
+            params=params,
+        )
 
 
 def redact_headers(headers: dict[str, str], sensitive_keys: Iterable[str]) -> dict[str, str]:
     sensitive = {normalize_sensitive_key(key) for key in sensitive_keys}
-    return {key: "<redacted>" if normalize_sensitive_key(key) in sensitive else value for key, value in headers.items()}
+    return {
+        key: "<redacted>" if normalize_sensitive_key(key) in sensitive else value
+        for key, value in headers.items()
+    }
 
 
 def normalize_sensitive_key(key: str) -> str:
@@ -307,12 +380,17 @@ def redact_query_params(text: str, sensitive_keys: Iterable[str]) -> str:
     return "&".join(parts)
 
 
-def redact_json_value(value: Any, sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS) -> Any:
+def redact_json_value(
+    value: Any,
+    sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS,
+) -> Any:
     sensitive = {normalize_sensitive_key(key) for key in sensitive_keys}
     if isinstance(value, dict):
         return {
             str(key): (
-                "<redacted>" if normalize_sensitive_key(str(key)) in sensitive and item not in (None, "", [], {})
+                "<redacted>"
+                if normalize_sensitive_key(str(key)) in sensitive
+                and item not in (None, "", [], {})
                 else redact_json_value(item, sensitive)
             )
             for key, item in value.items()
@@ -322,22 +400,39 @@ def redact_json_value(value: Any, sensitive_keys: Iterable[str] = DEFAULT_SENSIT
     return value
 
 
-def redact_json_text(text: str, sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS) -> str:
+def redact_json_text(
+    text: str,
+    sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS,
+) -> str:
     if not text:
         return text
     try:
         value = json.loads(text)
     except json.JSONDecodeError:
         return "<redacted non-JSON payload>"
-    return json.dumps(redact_json_value(value, sensitive_keys), ensure_ascii=True, separators=(",", ":"))
+    return json.dumps(
+        redact_json_value(value, sensitive_keys),
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
 
 
-def format_http_response(text: str, *, status: int, authenticated: bool, show_private_response: bool) -> str:
+def format_http_response(
+    text: str,
+    *,
+    status: int,
+    authenticated: bool,
+    show_private_response: bool,
+) -> str:
     if not authenticated:
         return text
     if show_private_response:
         return redact_json_text(text)
-    summary: dict[str, Any] = {"private_response": True, "http_status": status}
+
+    summary: dict[str, Any] = {
+        "private_response": True,
+        "http_status": status,
+    }
     try:
         value = json.loads(text)
     except json.JSONDecodeError:
@@ -346,7 +441,11 @@ def format_http_response(text: str, *, status: int, authenticated: bool, show_pr
         if isinstance(value, dict):
             summary["type"] = "object"
             summary["field_count"] = len(value)
-            collection_sizes = [len(item) for item in value.values() if isinstance(item, (dict, list))]
+            collection_sizes = [
+                len(item)
+                for item in value.values()
+                if isinstance(item, (dict, list))
+            ]
             if collection_sizes:
                 summary["collection_sizes"] = collection_sizes
             for key in ("success", "code"):
