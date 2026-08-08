@@ -1,15 +1,22 @@
-"""Shared validation and redaction helpers for local MEXC tools."""
+"""Shared validation, redaction, and live-confirmation helpers for MEXC tools."""
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
+import secrets
+import time
 import urllib.parse
+from pathlib import Path
 from typing import Any, Iterable
 
 
 ALLOWED_METHODS = {"GET", "POST", "PUT", "DELETE"}
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+CONFIRMATION_TTL_SECONDS = 60
+CONFIRMATION_DIR_ENV = "MEXC_CONFIRMATION_DIR"
 DEFAULT_SENSITIVE_KEYS = frozenset(
     {
         "accesskey", "account", "accountid", "address", "apikey", "authorization",
@@ -120,42 +127,230 @@ def ensure_no_signed_query(path: str, signed: bool) -> None:
         )
 
 
+def _normalized_safe_requests(
+    safe_requests: Iterable[tuple[str, str]],
+) -> set[tuple[str, str]]:
+    return {(normalize_method(method), normalize_path(path)) for method, path in safe_requests}
+
+
 def is_authenticated_mutation(
     method: str,
     path: str,
     authenticated: bool,
     *,
-    safe_path_suffixes: Iterable[str] = (),
+    safe_requests: Iterable[tuple[str, str]] = (),
 ) -> bool:
+    normalized_method = normalize_method(method)
+    normalized_path = normalize_path(path)
     return (
         authenticated
-        and method != "GET"
-        and not any(path.endswith(suffix) for suffix in safe_path_suffixes)
+        and normalized_method != "GET"
+        and (normalized_method, normalized_path) not in _normalized_safe_requests(safe_requests)
     )
+
+
+def _confirmation_directory() -> Path:
+    configured = os.environ.get(CONFIRMATION_DIR_ENV)
+    root = (
+        Path(configured).expanduser()
+        if configured
+        else Path.home() / ".mexc-agent-trading-skills" / "confirmations"
+    )
+    root.mkdir(parents=True, exist_ok=True)
+    try:
+        root.chmod(0o700)
+    except OSError:
+        pass
+    return root
+
+
+def _canonical_confirmation_request(method: str, path: str, params: Any) -> dict[str, Any]:
+    return {
+        "method": normalize_method(method),
+        "path": normalize_path(path),
+        "params": params,
+    }
+
+
+def _confirmation_digest(record: dict[str, Any]) -> str:
+    canonical = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(
+        ("mexc-live-confirmation-v1\n" + canonical).encode("utf-8")
+    ).hexdigest()
+
+
+def _receipt_path(digest: str) -> Path:
+    if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        raise SystemExit("Invalid --confirm-live digest.")
+    return _confirmation_directory() / f"{digest}.json"
+
+
+def _remove_expired_receipts(now: int) -> None:
+    root = _confirmation_directory()
+    for candidate in root.glob("*.json"):
+        try:
+            value = json.loads(candidate.read_text(encoding="utf-8"))
+            expires_at = int(value.get("expires_at", 0))
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            continue
+        if expires_at < now:
+            try:
+                candidate.unlink()
+            except OSError:
+                pass
+
+
+def prepare_live_confirmation(
+    *,
+    method: str,
+    path: str,
+    params: Any,
+    authenticated: bool,
+    safe_requests: Iterable[tuple[str, str]] = (),
+    ttl_seconds: int = CONFIRMATION_TTL_SECONDS,
+) -> dict[str, Any]:
+    if ttl_seconds < 1 or ttl_seconds > 300:
+        raise SystemExit("Confirmation TTL must be between 1 and 300 seconds.")
+    if not is_authenticated_mutation(
+        method,
+        path,
+        authenticated,
+        safe_requests=safe_requests,
+    ):
+        raise SystemExit(
+            "--prepare-live is only valid for authenticated state-changing requests."
+        )
+
+    now = int(time.time())
+    _remove_expired_receipts(now)
+    request = _canonical_confirmation_request(method, path, params)
+    record: dict[str, Any] = {
+        "version": 1,
+        **request,
+        "nonce": secrets.token_hex(16),
+        "created_at": now,
+        "expires_at": now + ttl_seconds,
+    }
+    digest = _confirmation_digest(record)
+    target = _receipt_path(digest)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(target, flags, 0o600)
+    try:
+        payload = json.dumps(
+            record,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        os.write(fd, payload.encode("utf-8"))
+    finally:
+        os.close(fd)
+    return {
+        "live_confirmation": digest,
+        "expires_at": record["expires_at"],
+        "ttl_seconds": ttl_seconds,
+        "request": request,
+    }
+
+
+def consume_live_confirmation(
+    digest: str,
+    *,
+    method: str,
+    path: str,
+    params: Any,
+) -> None:
+    target = _receipt_path(digest)
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        fd = os.open(target, flags)
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            "Live confirmation is missing, expired, or already used."
+        ) from exc
+    try:
+        raw = os.read(fd, 1024 * 1024).decode("utf-8")
+    finally:
+        os.close(fd)
+    try:
+        record = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit("Live confirmation receipt is invalid.") from exc
+    if not isinstance(record, dict) or record.get("version") != 1:
+        raise SystemExit("Live confirmation receipt is invalid.")
+    expected = _confirmation_digest(record)
+    if not hmac.compare_digest(expected, digest):
+        raise SystemExit("Live confirmation receipt failed integrity validation.")
+
+    now = int(time.time())
+    try:
+        expires_at = int(record["expires_at"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise SystemExit("Live confirmation receipt is invalid.") from exc
+    if expires_at < now:
+        try:
+            target.unlink()
+        except OSError:
+            pass
+        raise SystemExit("Live confirmation expired. Prepare the request again.")
+
+    actual_request = _canonical_confirmation_request(method, path, params)
+    recorded_request = {
+        "method": record.get("method"),
+        "path": record.get("path"),
+        "params": record.get("params"),
+    }
+    if actual_request != recorded_request:
+        raise SystemExit(
+            "Live request does not match the transaction that was confirmed."
+        )
+
+    # Consume before network I/O so the same authorization cannot be replayed if
+    # the exchange response is lost or ambiguous.
+    try:
+        target.unlink()
+    except FileNotFoundError as exc:
+        raise SystemExit("Live confirmation was already consumed.") from exc
 
 
 def validate_live_execution(
     *,
     execute: bool,
-    confirm_live: bool,
+    confirm_live: str | None,
     method: str,
     path: str,
+    params: Any,
     authenticated: bool,
-    safe_path_suffixes: Iterable[str] = (),
+    safe_requests: Iterable[tuple[str, str]] = (),
 ) -> None:
+    mutation = is_authenticated_mutation(
+        method,
+        path,
+        authenticated,
+        safe_requests=safe_requests,
+    )
     if confirm_live and not execute:
         raise SystemExit("--confirm-live is only valid with --execute.")
-    if (
-        execute
-        and is_authenticated_mutation(
-            method,
-            path,
-            authenticated,
-            safe_path_suffixes=safe_path_suffixes,
+    if confirm_live and not mutation:
+        raise SystemExit(
+            "--confirm-live is only valid for authenticated state-changing requests."
         )
-        and not confirm_live
-    ):
-        raise SystemExit("Refusing live authenticated non-GET request without --confirm-live")
+    if execute and mutation:
+        if not confirm_live:
+            raise SystemExit(
+                "Refusing live authenticated state-changing request. "
+                "Run --prepare-live first, review the exact transaction, then pass its digest with --confirm-live."
+            )
+        consume_live_confirmation(
+            confirm_live,
+            method=method,
+            path=path,
+            params=params,
+        )
 
 
 def redact_headers(headers: dict[str, str], sensitive_keys: Iterable[str]) -> dict[str, str]:

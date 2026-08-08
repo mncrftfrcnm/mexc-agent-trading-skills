@@ -15,7 +15,6 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from mexc_common import (  # noqa: E402
     DEFAULT_SENSITIVE_KEYS,
@@ -24,6 +23,7 @@ from mexc_common import (  # noqa: E402
     load_json_params,
     normalize_method,
     normalize_path,
+    prepare_live_confirmation,
     read_mexc_api_key,
     read_mexc_credentials,
     redact_headers as redact_auth_headers,
@@ -40,6 +40,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 BASE_URL = "https://api.mexc.com"
 AUTHENTICATED_HOSTS = {"api.mexc.com"}
+SAFE_LIVE_REQUESTS = {("POST", "/api/v3/order/test")}
 EXAMPLES = "examples: GET /api/v3/time | GET /api/v3/account --signed"
 DOCS_EXAMPLE_SECRET = "45d0b3c26f2644f19bfb98b07741b2f5"
 DOCS_EXAMPLE_QUERY = (
@@ -60,11 +61,7 @@ def encode_params(params: dict[str, Any]) -> str:
 
 
 def sign_total_params(total_params: str, secret: str) -> str:
-    return hmac.new(
-        secret.encode("utf-8"),
-        total_params.encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
+    return hmac.new(secret.encode(), total_params.encode(), hashlib.sha256).hexdigest()
 
 
 def env_api_key() -> str:
@@ -92,14 +89,13 @@ def build_request(args: argparse.Namespace) -> tuple[str, str, dict[str, str], b
         authenticated=args.signed or args.api_key_only,
         allowed_authenticated_hosts=AUTHENTICATED_HOSTS,
     ) + path
-    headers: dict[str, str] = {"User-Agent": "codex-mexc-spot-helper/1.0"}
+    headers = {"User-Agent": "mexc-agent-spot-helper/1.1"}
     params = load_params(args.params)
-    body: bytes | None = None
+    body = None
     encoded = encode_params(params)
 
     if args.api_key_only:
         headers["X-MEXC-APIKEY"] = env_api_key()
-
     if args.signed:
         api_key, secret = env_credentials()
         params["recvWindow"] = str(args.recv_window)
@@ -113,37 +109,48 @@ def build_request(args: argparse.Namespace) -> tuple[str, str, dict[str, str], b
 
     if method == "GET":
         if encoded_with_signature:
-            separator = "&" if "?" in url else "?"
-            url = f"{url}{separator}{encoded_with_signature}"
+            url = f"{url}?{encoded_with_signature}"
         printable_body = ""
     else:
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-        body = encoded_with_signature.encode("utf-8") if encoded_with_signature else None
+        body = encoded_with_signature.encode() if encoded_with_signature else None
         printable_body = encoded_with_signature
-
     return method, url, headers, body, printable_body
 
 
 def execute(
-    method: str, url: str, headers: dict[str, str], body: bytes | None,
-    *, authenticated: bool, show_private_response: bool,
+    method: str,
+    url: str,
+    headers: dict[str, str],
+    body: bytes | None,
+    *,
+    authenticated: bool,
+    show_private_response: bool,
 ) -> int:
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
             status = int(response.status)
             text = response.read().decode("utf-8", errors="replace")
-            sys.stdout.write(format_http_response(
-                text, status=status, authenticated=authenticated,
-                show_private_response=show_private_response,
-            ))
+            sys.stdout.write(
+                format_http_response(
+                    text,
+                    status=status,
+                    authenticated=authenticated,
+                    show_private_response=show_private_response,
+                )
+            )
             return 0 if 200 <= status < 300 else 1
     except urllib.error.HTTPError as exc:
         text = exc.read().decode("utf-8", errors="replace")
-        sys.stderr.write(format_http_response(
-            text, status=int(exc.code), authenticated=authenticated,
-            show_private_response=show_private_response,
-        ))
+        sys.stderr.write(
+            format_http_response(
+                text,
+                status=int(exc.code),
+                authenticated=authenticated,
+                show_private_response=show_private_response,
+            )
+        )
         return 1
     except (urllib.error.URLError, TimeoutError):
         sys.stderr.write("Network request failed; signed URL and request details were suppressed.\n")
@@ -168,16 +175,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("method", nargs="?", help="HTTP method, e.g. GET or POST")
     parser.add_argument("path", nargs="?", help="API path, e.g. /api/v3/time")
     parser.add_argument("--params", help="JSON object of business parameters")
-    parser.add_argument("--api-key-only", action="store_true", help="Send only X-MEXC-APIKEY from env, for endpoints such as userDataStream")
+    parser.add_argument("--api-key-only", action="store_true", help="Send only X-MEXC-APIKEY from env")
     parser.add_argument("--signed", action="store_true", help="Sign request using env credentials")
     parser.add_argument("--execute", action="store_true", help="Send the request. Default is dry-run.")
-    parser.add_argument("--confirm-live", action="store_true", help="Allow live signed non-GET requests")
     parser.add_argument(
-        "--show-private-response", action="store_true",
-        help="Print a redacted private response instead of the default metadata-only summary",
+        "--prepare-live",
+        action="store_true",
+        help="Create a short-lived one-time confirmation for this exact live mutation without sending it",
     )
-    parser.add_argument("--recv-window", default="5000", help="Spot recvWindow in milliseconds")
-    parser.add_argument("--timestamp", help="Override timestamp in milliseconds, mainly for tests")
+    parser.add_argument(
+        "--confirm-live",
+        metavar="DIGEST",
+        help="One-time digest produced by --prepare-live for this exact transaction",
+    )
+    parser.add_argument(
+        "--show-private-response",
+        action="store_true",
+        help="Print a redacted private response instead of metadata only",
+    )
+    parser.add_argument("--recv-window", default="5000")
+    parser.add_argument("--timestamp")
     parser.add_argument("--base-url", default=BASE_URL)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
@@ -187,6 +204,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("method and path are required unless --self-test is used")
     if args.api_key_only and args.signed:
         parser.error("--api-key-only and --signed are mutually exclusive")
+    if args.prepare_live and (args.execute or args.confirm_live):
+        parser.error("--prepare-live cannot be combined with --execute or --confirm-live")
     return args
 
 
@@ -197,35 +216,58 @@ def main() -> int:
         return 0
     method = normalize_method(args.method)
     path = normalize_path(args.path)
+    params = load_params(args.params)
+    authenticated = args.signed or args.api_key_only
+    if args.prepare_live:
+        prepared = prepare_live_confirmation(
+            method=method,
+            path=path,
+            params=params,
+            authenticated=authenticated,
+            safe_requests=SAFE_LIVE_REQUESTS,
+        )
+        print(json.dumps(prepared, indent=2, sort_keys=True))
+        return 0
     validate_live_execution(
         execute=args.execute,
         confirm_live=args.confirm_live,
         method=method,
         path=path,
-        authenticated=args.signed or args.api_key_only,
-        safe_path_suffixes=("/test",),
+        params=params,
+        authenticated=authenticated,
+        safe_requests=SAFE_LIVE_REQUESTS,
     )
     method, url, headers, body, printable_body = build_request(args)
     if not args.execute:
         parsed_url = urllib.parse.urlsplit(url)
-        redacted_query = redact_sensitive_params(parsed_url.query)
         safe_url = urllib.parse.urlunsplit(
-            (parsed_url.scheme, parsed_url.netloc, parsed_url.path, redacted_query, parsed_url.fragment)
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                redact_sensitive_params(parsed_url.query),
+                parsed_url.fragment,
+            )
         )
-        print(json.dumps(
-            {
-                "dry_run": True,
-                "method": method,
-                "url": safe_url,
-                "headers": redact_headers(headers),
-                "body": redact_sensitive_params(printable_body),
-            },
-            indent=2,
-        ))
+        print(
+            json.dumps(
+                {
+                    "dry_run": True,
+                    "method": method,
+                    "url": safe_url,
+                    "headers": redact_headers(headers),
+                    "body": redact_sensitive_params(printable_body),
+                },
+                indent=2,
+            )
+        )
         return 0
     return execute(
-        method, url, headers, body,
-        authenticated=args.signed or args.api_key_only,
+        method,
+        url,
+        headers,
+        body,
+        authenticated=authenticated,
         show_private_response=args.show_private_response,
     )
 

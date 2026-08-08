@@ -8,32 +8,67 @@ on:
 permissions:
   contents: read
 
+env:
+  GITLEAKS_COMMIT: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e
+  TRUFFLEHOG_COMMIT: 6f3c981e7b77f235fd2702dd74af25fc4b72bf11
+  GOTOOLCHAIN: local
+
 jobs:
   checks:
-    name: Self-tests, compile, and secret scan
+    name: Tests, compile, and secret scans
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.x"
+          python-version: "3.14"
 
-      - name: Set up Go for gitleaks install
-        uses: actions/setup-go@v5
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "stable"
+          go-version: "1.26.5"
+          cache: false
 
-      - name: Install gitleaks
-        run: go install github.com/zricethezav/gitleaks/v8@latest
+      - name: Build pinned secret scanners from exact source commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN_DIR="$RUNNER_TEMP/security-bin"
+          mkdir -p "$BIN_DIR"
 
-      - name: Install TruffleHog
-        run: curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+          build_scanner() {
+            local repo_url="$1"
+            local commit="$2"
+            local name="$3"
+            local src="$RUNNER_TEMP/${name}-src"
+
+            git init -q "$src"
+            git -C "$src" remote add origin "$repo_url"
+            git -C "$src" -c protocol.version=2 fetch --quiet --depth=1 origin "$commit"
+            git -C "$src" checkout --quiet --detach FETCH_HEAD
+            test "$(git -C "$src" rev-parse HEAD)" = "$commit"
+            (cd "$src" && go build -trimpath -o "$BIN_DIR/$name" .)
+          }
+
+          build_scanner https://github.com/gitleaks/gitleaks.git "$GITLEAKS_COMMIT" gitleaks
+          build_scanner https://github.com/trufflesecurity/trufflehog.git "$TRUFFLEHOG_COMMIT" trufflehog
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+
+      - name: Verify scanner versions
+        run: |
+          gitleaks version
+          trufflehog --version
+
+      - name: Run adversarial security tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
 
       - name: Run MEXC Spot REST self-test
         run: python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
@@ -42,12 +77,10 @@ jobs:
         run: python codex_mexc_skills/skills/mexc-futures-rest/scripts/mexc_futures_request.py --self-test
 
       - name: Compile Python files
-        run: python -m compileall codex_mexc_skills claude_mexc_skills
+        run: python -m compileall -q codex_mexc_skills claude_mexc_skills tests
 
       - name: Run gitleaks secret scan
         run: gitleaks git --verbose --redact .
 
       - name: Run TruffleHog verified secret scan
-        run: trufflehog git file://. --results=verified --fail --github-actions
-        
-          
+        run: trufflehog git file://. --results=verified --fail --github-actions --no-update
