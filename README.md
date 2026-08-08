@@ -20,12 +20,10 @@ Use one of the Claude-ready layouts:
 ```text
 claude_mexc_skills/.claude/skills/
 claude_mexc_skills/claude/skills/
-
 ```
 For claude-code prefer the .claude folder, just like in other skills. the 'claude' folder is left, because github uploads may sometimes work very bad with . files, so that's why there are two of them
 
 ```text
-
 claude_mexc_skills/.claude/skills/mexc-spot-rest
 claude_mexc_skills/.claude/skills/mexc-spot-websocket
 claude_mexc_skills/.claude/skills/mexc-futures-rest
