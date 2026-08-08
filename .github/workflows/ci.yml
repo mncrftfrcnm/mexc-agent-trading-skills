@@ -63,6 +63,10 @@ jobs:
       - name: Compile Python files
         run: python -m compileall -q codex_mexc_skills claude_mexc_skills tests
 
+      - name: Repeated public MEXC API smoke test on hardening branch
+        if: github.ref_name == 'security/harden-ci-and-live-confirmation'
+        run: python tests/live_public_smoke.py --iterations 12 --delay 0.3
+
       - name: Run gitleaks secret scan
         run: gitleaks git --verbose --redact .
 
