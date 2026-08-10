@@ -11,6 +11,7 @@ permissions:
 env:
   GITLEAKS_COMMIT: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # v8.30.1
   TRUFFLEHOG_COMMIT: 6f3c981e7b77f235fd2702dd74af25fc4b72bf11 # v3.96.0
+  BANDIT_VERSION: "1.9.4"
   GOTOOLCHAIN: local
 
 jobs:
@@ -67,8 +68,21 @@ jobs:
           gitleaks version
           trufflehog --version
 
+      - name: Install pinned Bandit
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "bandit==$BANDIT_VERSION"
+
       - name: Run adversarial security tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r codex_mexc_skills claude_mexc_skills \
+            --exclude tests \
+            --severity-level medium \
+            --confidence-level medium \
+            --format screen
 
       - name: Run MEXC Spot REST self-test
         run: python codex_mexc_skills/skills/mexc-spot-rest/scripts/mexc_spot_request.py --self-test
