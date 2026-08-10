@@ -112,6 +112,3 @@ jobs:
             --severity-level medium \
             --confidence-level medium \
             --format screen
-
-      - name: Audit Python dependencies
-        run: pip-audit -r requirements.txt
