@@ -24,6 +24,7 @@ from mexc_common import (  # noqa: E402
     load_json_params,
     normalize_method,
     normalize_path,
+    open_mexc_request,
     read_mexc_api_key,
     read_mexc_credentials,
     redact_headers as redact_auth_headers,
@@ -31,6 +32,7 @@ from mexc_common import (  # noqa: E402
     strip_wrapping_quotes,
     validate_base_url,
     validate_live_execution,
+    validate_mexc_request_url,
 )
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -130,7 +132,7 @@ def execute(
 ) -> int:
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(request, timeout=20) as response:
+        with open_mexc_request(request, timeout=20) as response:
             status = int(response.status)
             text = response.read().decode("utf-8", errors="replace")
             sys.stdout.write(format_http_response(
@@ -156,6 +158,17 @@ def self_test() -> None:
         raise SystemExit("Spot signature self-test failed")
     if strip_wrapping_quotes("'abc123'") != "abc123":
         raise SystemExit("Spot credential quote stripping self-test failed")
+    validate_mexc_request_url(f"{BASE_URL}/api/v3/time")
+    for unsafe_url in (
+        "file:///etc/passwd",
+        "http://api.mexc.com/api/",
+        "https://api.mexc.com@evil.example/api/",
+    ):
+        try:
+            validate_mexc_request_url(unsafe_url)
+        except urllib.error.URLError:
+            continue
+        raise SystemExit("Spot URL allowlist self-test failed")
     print("spot self-test ok")
 
 
