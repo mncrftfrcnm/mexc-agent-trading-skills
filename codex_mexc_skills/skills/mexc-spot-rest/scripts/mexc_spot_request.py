@@ -132,7 +132,7 @@ def execute(
 ) -> int:
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
-        with open_mexc_request(request, timeout=20) as response:
+        with open_mexc_request(request, timeout=20, authenticated=authenticated) as response:
             status = int(response.status)
             text = response.read().decode("utf-8", errors="replace")
             sys.stdout.write(format_http_response(
