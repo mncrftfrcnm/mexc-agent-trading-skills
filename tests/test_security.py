@@ -3,6 +3,7 @@ import os
 import secrets
 import string
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -44,6 +45,21 @@ class ValidationTests(unittest.TestCase):
         )
         with self.assertRaises(SystemExit):
             common.validate_base_url("http://evil.example")
+
+    def test_request_url_allowlist_matches_authentication_state(self):
+        common.validate_mexc_request_url(
+            "http://127.0.0.1:8080/api/test", authenticated=False
+        )
+        common.validate_mexc_request_url(
+            "https://api.mexc.com/api/v3/time", authenticated=True
+        )
+        for url, authenticated in (
+            ("file:///etc/passwd", False),
+            ("http://evil.example/api/test", False),
+            ("https://evil.example/api/test", True),
+        ):
+            with self.subTest(url=url), self.assertRaises(urllib.error.URLError):
+                common.validate_mexc_request_url(url, authenticated=authenticated)
 
     def test_path_rejects_urls_and_control_characters(self):
         bad = (
