@@ -114,4 +114,4 @@ jobs:
             --format screen
 
       - name: Audit Python dependencies
-        run: pip-audit -r requirements.txt
+        run: pip-audit -r requirements.loc
