@@ -84,3 +84,20 @@ jobs:
 
       - name: Run TruffleHog verified secret scan
         run: trufflehog git file://. --results=verified --fail --github-actions --no-update
+      
+      - name: Install pinned Python security tools
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "bandit==1.9.4" \
+            "pip-audit==2.10.1"
+    
+      - name: Run Bandit
+        run: |
+          bandit -r codex_mexc_skills claude_mexc_skills \
+            --exclude tests \
+            --severity-level medium \
+            --confidence-level medium \
+            --format screen
+
+      - name: Audit Python dependencies
+        run: pip-audit -r requirements.txt
