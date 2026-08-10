@@ -11,6 +11,7 @@ from typing import Any, Iterable
 
 
 ALLOWED_METHODS = {"GET", "POST", "PUT", "DELETE"}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 # MEXC documents api.mexc.com as the REST base URL for Spot and Futures.
 MEXC_REST_HOSTS = frozenset({"api.mexc.com"})
 DEFAULT_SENSITIVE_KEYS = frozenset(
@@ -101,11 +102,9 @@ def validate_base_url(
         raise SystemExit("--base-url must not contain embedded credentials.")
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise SystemExit("--base-url must not include a path, query string, or fragment.")
-    try:
-        validate_mexc_request_url(base_url)
-    except urllib.error.URLError as exc:
-        raise SystemExit(str(exc.reason)) from exc
     host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" and host not in LOCAL_HOSTS:
+        raise SystemExit("--base-url must use https unless it targets localhost.")
     if authenticated:
         allowed = {item.lower() for item in allowed_authenticated_hosts}
         if parsed.scheme != "https" or host not in allowed or parsed.port not in {None, 443}:
@@ -123,7 +122,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def validate_mexc_request_url(url: str) -> None:
+def validate_mexc_request_url(url: str, *, authenticated: bool = True) -> None:
     parsed = urllib.parse.urlsplit(url)
     try:
         port = parsed.port
@@ -132,19 +131,30 @@ def validate_mexc_request_url(url: str) -> None:
 
     host = (parsed.hostname or "").lower()
     if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or (parsed.scheme != "https" and host not in LOCAL_HOSTS)
+    ):
+        raise urllib.error.URLError("Refusing an unsafe request URL.")
+    if authenticated and (
         parsed.scheme != "https"
         or host not in MEXC_REST_HOSTS
         or port not in {None, 443}
-        or parsed.username is not None
-        or parsed.password is not None
     ):
         raise urllib.error.URLError(
-            "Refusing a request outside the MEXC HTTPS REST allowlist."
+            "Refusing an authenticated request outside the MEXC HTTPS REST allowlist."
         )
 
 
-def open_mexc_request(request: urllib.request.Request, *, timeout: float) -> Any:
-    validate_mexc_request_url(request.full_url)
+def open_mexc_request(
+    request: urllib.request.Request,
+    *,
+    timeout: float,
+    authenticated: bool,
+) -> Any:
+    validate_mexc_request_url(request.full_url, authenticated=authenticated)
     opener = urllib.request.build_opener(_NoRedirect())
     return opener.open(request, timeout=timeout)
 
